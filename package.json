@@ -1,0 +1,11 @@
+{
+  "name": "farol",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "test": "npm run test -w @farol/shared",
+    "dev:api": "npm run dev -w @farol/api",
+    "build:api": "npm run build -w @farol/api",
+    "typecheck": "npm run typecheck -w @farol/shared && npm run typecheck -w @farol/api"
+  }
+}

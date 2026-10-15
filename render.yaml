@@ -1,0 +1,21 @@
+# Blueprint do Render — API Farol
+services:
+  - type: web
+    name: farol-api
+    runtime: node
+    plan: starter            # free dorme após inatividade e quebra o job de 60 s
+    region: oregon           # troque por 'virginia' se preferir; ideal: mesma região do Supabase
+    rootDir: .
+    buildCommand: npm ci && npm run build:api
+    startCommand: npm run start -w @farol/api
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

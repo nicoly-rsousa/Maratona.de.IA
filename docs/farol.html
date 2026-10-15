@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Farol — fila e despacho (protótipo, dados fictícios)</title>
+<style>
+:root{--bg:#0f1419;--p1:#171e26;--p2:#1f2833;--ln:#2d3a48;--tx:#dbe4ee;--mu:#8296aa;--ac:#5cc8d6;--ok:#6fbf8a;
+--c0:#ff3d8b;--c1:#ff5a3c;--c2:#f2a900;--c3:#4f9cff;--c4:#7d9a8c;color-scheme:dark}
+:root[data-t=l]{--bg:#eef2f6;--p1:#fff;--p2:#e4eaf0;--ln:#c3cfdb;--tx:#16212c;--mu:#566879;--ac:#0b7f90;--ok:#1f7a45;
+--c0:#c4005f;--c1:#c93a14;--c2:#9a6a00;--c3:#1f64c8;--c4:#4c675a;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.4 system-ui,sans-serif}
+.m{font-family:ui-monospace,Menlo,Consolas,monospace}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:var(--p1);border-bottom:1px solid var(--ln)}
+header b{font-size:15px;margin-right:8px}
+select,input,textarea,button{font:inherit;color:var(--tx);background:var(--p2);border:1px solid var(--ln);border-radius:3px;padding:4px 7px}
+button{cursor:pointer}button:hover:not(:disabled){border-color:var(--ac)}button:disabled{opacity:.45;cursor:not-allowed}
+button.pr{background:var(--ac);color:var(--bg);border-color:var(--ac);font-weight:600}
+.wrap{display:flex;min-height:calc(100vh - 46px)}
+nav{width:150px;padding:8px;border-right:1px solid var(--ln);display:flex;flex-direction:column;gap:4px}
+nav button{text-align:left;border-color:transparent;background:none}nav button[aria-current=true]{background:var(--p2);border-left:3px solid var(--ac)}
+main{flex:1;padding:12px;min-width:0}
+h2{font-size:15px;margin:0 0 8px}h3{font-size:13px;margin:12px 0 4px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{padding:4px 7px;border-bottom:1px solid var(--ln);text-align:left;white-space:nowrap}th{color:var(--mu);font-weight:500}
+tr.r:hover{background:var(--p2)}
+.pill{display:inline-block;min-width:74px;text-align:center;padding:1px 6px;border-radius:2px;font-weight:700;color:#0f1419}
+.k0{background:var(--c0)}.k1{background:var(--c1)}.k2{background:var(--c2)}.k3{background:var(--c3)}.k4{background:var(--c4)}
+:root[data-t=l] .pill{color:#fff}
+.box{background:var(--p1);border:1px solid var(--ln);padding:10px;margin-bottom:10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.row label{display:flex;flex-direction:column;gap:2px;color:var(--mu)}
+.err{border-left:3px solid var(--c1);background:var(--p2);padding:6px 9px;margin:6px 0}.warn{border-left:3px solid var(--c2);background:var(--p2);padding:6px 9px;margin:6px 0}
+.okm{border-left:3px solid var(--ok);background:var(--p2);padding:6px 9px;margin:6px 0}
+a.bt{display:inline-block;padding:3px 7px;border:1px solid var(--ln);border-radius:3px;color:var(--ac);text-decoration:none;background:var(--p2)}a.bt:hover{border-color:var(--ac)}
+.tabs{display:flex;gap:4px;margin:8px 0}.tabs button[aria-selected=true]{border-color:var(--ac);color:var(--ac)}
+.mu{color:var(--mu)}svg text{fill:var(--tx);font-size:9px}
+.sk{height:14px;background:var(--p2);margin:6px 0;animation:pl 1.2s infinite}@keyframes pl{50%{opacity:.4}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:700px){.wrap{flex-direction:column}nav{width:auto;flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--ln)}}
+dialog{background:var(--p1);color:var(--tx);border:1px solid var(--ac);max-width:420px;width:92%}dialog::backdrop{background:#0008}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+</head>
+<body>
+<header>
+<b>Farol</b>
+<label class="mu">Perfil <select id="perfil" onchange="pedeSenha(this.value)"></select></label>
+<label class="mu">Cidade <select id="cid" onchange="S.cid=this.value;go('fila')"></select></label>
+<button onclick="tema()" aria-label="Alternar tema claro e escuro">Tema</button>
+<span class="mu">Dados fictícios · pontos, faixas e prazos demonstrativos</span>
+</header>
+<div class="wrap"><nav id="nav" aria-label="Telas"></nav><main id="main" aria-live="polite"></main></div>
+<dialog id="dlg"><form method="dialog" onsubmit="return false"><p id="dt"></p><textarea id="dj" rows="3" style="width:100%" aria-label="Justificativa"></textarea><div id="de" class="err" hidden></div><p><button class="pr" onclick="dlgOk()">Confirmar</button> <button onclick="dlg.close()">Voltar</button></p></form></dialog>
+<dialog id="lg"><form method="dialog" onsubmit="loginOk();return false"><p id="lt"></p><input id="lp" type="password" autocomplete="off" aria-label="Senha" style="width:100%"><div id="le" class="err" hidden></div><p class="mu" id="lh"></p><p><button type="submit" class="pr">Entrar</button> <button type="button" onclick="lg.close()">Cancelar</button></p></form></dialog>
+<script>
+const SENHA={'Administrador':'admin123','Atendente':'atendente123','Despachante':'despachante123','Supervisor':'supervisor123','Equipe de campo':'equipe123','Usuário Chave':'chave123'};
+let _pf=null;
+const mapsUrl=(de,para)=>`https://www.google.com/maps/dir/?api=1${de?"&origin="+ll(de).join(","):""}&destination=${ll(para).join(",")}&travelmode=driving`;
+const LOGIN=false; // protótipo: troca livre de perfil para revisar telas. Projeto final: login obrigatório.
+function pedeSenha(p){if(p===S.perfil)return;if(!LOGIN){setPerfil(p);return}_pf=p;lt.textContent='Entrar como '+p;lp.value='';le.hidden=true;lh.textContent='Senha demonstrativa (fictícia): '+SENHA[p];lg.showModal();lp.focus();lg.onclose=()=>{if(_pf){_pf=null;head()}}}
+function loginOk(){if(lp.value!==SENHA[_pf]){le.hidden=false;le.textContent='Senha incorreta. Use a senha demonstrativa abaixo e tente de novo.';lp.select();return}const p=_pf;_pf=null;lg.close();setPerfil(p)}
+const COD=['Emergente','Urgente','Alta','Média','Baixa'];
+const CIDADES={BH:'Belo Horizonte',CT:'Contagem'};
+const PERFIS={'Administrador':{p:['*'],c:['BH','CT','*']},'Atendente':{p:['nova'],c:['BH']},'Despachante':{p:['status','designar','cancelar'],c:['BH']},
+'Supervisor':{p:['status','designar','cancelar','excecao','reabrir'],c:['BH','CT','*']},'Equipe de campo':{p:['campo'],c:['BH']},'Usuário Chave':{p:['pontuacao'],c:['BH','CT','*']}};
+const OPC={vida:['Nenhum risco','Cabo energizado / choque','Desconhecido'],essencial:['Não','Hospital / emergência','Desconhecido'],reserva:['Sim','Não','Desconhecida'],
+pessoas:['1–10','11–100','> 100','Desconhecido'],estrutura:['Sem risco','Risco de queda','Desconhecido'],tipo:['Corretiva','Preventiva'],
+prazo:['Sem prazo','> 72 h','24–72 h','< 24 h ou vencido'],espera:['Até 1 h','1–4 h','> 4 h']};
+const NOME={vida:'Risco à vida',essencial:'Serviço essencial',reserva:'Fonte de reserva',pessoas:'Pessoas afetadas',estrutura:'Estrutura',tipo:'Tipo de manutenção',prazo:'Prazo-limite (auto)',espera:'Tempo de espera (auto)'};
+const PTS={vida:[0,40,15],essencial:[0,30,10],reserva:[0,20,10],pessoas:[2,10,25,8],estrutura:[0,25,10],tipo:[5,0],prazo:[0,0,5,15],espera:[0,5,10]};
+const mk=()=>({crit:Object.keys(OPC).map(id=>({id,nome:NOME[id],ops:OPC[id].map((l,i)=>({l,p:PTS[id][i]}))})),
+bands:[{de:0,ate:9,cod:4},{de:10,ate:24,cod:3},{de:25,ate:44,cod:2},{de:45,ate:69,cod:1},{de:70,ate:null,cod:0}]});
+const S={perfil:'Supervisor',cid:'BH',view:'fila',sel:null,tab:'Prioridade',versions:[{v:1,...mk(),just:'Carga inicial demonstrativa',modo:'—'}],draft:null,
+regras:[{id:'R-VIDA',nome:'Risco iminente à vida',cond:[['vida',['Cabo energizado / choque']]],nivel:3,min:1,on:true},
+{id:'R-ESS',nome:'Serviço essencial sem reserva',cond:[['essencial',['Hospital / emergência']],['reserva',['Não','Desconhecida']]],nivel:2,min:0,on:true},
+{id:'R-EST',nome:'Estrutura com risco de queda',cond:[['estrutura',['Risco de queda']]],nivel:1,min:2,on:true},
+{id:'R-PREV',nome:'Preventiva com prazo iminente',cond:[['tipo',['Preventiva']],['prazo',['< 24 h ou vencido']]],nivel:1,min:2,on:true}],
+rv:1,loading:true,falha:false,seq:{BH:8,CT:3},now:Date.now(),dup:null};
+S.draft=JSON.parse(JSON.stringify(S.versions[0]));
+const EQ=[{id:'BH-A',cid:'BH',cap:2,carga:0,q:['Linha viva'],x:30,y:30},{id:'BH-B',cid:'BH',cap:1,carga:0,q:[],x:70,y:60},
+{id:'CT-A',cid:'CT',cap:1,carga:0,q:['Linha viva'],x:40,y:50},{id:'CT-B',cid:'CT',cap:2,carga:0,q:[],x:75,y:25}];
+const ABERTAS=s=>!['Concluída','Cancelada'].includes(s);
+const MS=60000,OS=[];
+function novaOS(d){const n=++S.seq[d.cid];const o={num:`${d.cid}-2026-${String(n).padStart(4,'0')}`,cid:d.cid,end:d.end,x:+d.x,y:+d.y,tr:d.tr||'',uc:d.uc||'',qual:d.qual||'',
+f:{vida:d.vida,essencial:d.essencial,reserva:d.reserva,pessoas:d.pessoas,estrutura:d.estrutura,tipo:d.tipo},prazoH:d.prazoH===''||d.prazoH==null?null:+d.prazoH,
+ab:d.ab!=null?S.now-d.ab*MS:Date.now(),status:d.loc===false?'Em triagem':'Aguardando despacho',ver:S.versions.length-1,sol:1,hist:[],log:[],desp:null};
+OS.push(o);recalc(o,'Abertura');log(o,'OS aberta');return o}
+function log(o,t){o.log.unshift(new Date().toLocaleTimeString('pt-BR')+' — '+t)}
+const base={vida:'Nenhum risco',essencial:'Não',reserva:'Sim',pessoas:'1–10',estrutura:'Sem risco',tipo:'Corretiva',qual:''};
+[{cid:'BH',end:'R. das Acácias, 120',x:30,y:35,tr:'1234567',uc:'1000001',ab:50,prazoH:null},
+{cid:'BH',end:'Av. Central, 900',x:33,y:38,tr:'1234567',uc:'1000002',ab:300,vida:'Cabo energizado / choque',qual:'Linha viva'},
+{cid:'BH',end:'Hospital Santa Luz',x:60,y:55,tr:'2223344',uc:'1000003',ab:20,essencial:'Hospital / emergência',reserva:'Desconhecida',pessoas:'> 100'},
+{cid:'BH',end:'R. do Poste, 15',x:75,y:70,tr:'3334455',uc:'1000004',ab:90,estrutura:'Risco de queda'},
+{cid:'BH',end:'Subestação Norte',x:20,y:75,tr:'4445566',ab:40,tipo:'Preventiva',prazoH:10},
+{cid:'BH',end:'Praça Verde, 4',x:50,y:20,tr:'5556677',uc:'1000006',ab:400,pessoas:'11–100'},
+{cid:'BH',end:'R. Sul, 77',x:85,y:30,tr:'6667788',ab:15,tipo:'Preventiva',prazoH:100},
+{cid:'BH',end:'R. Lago, 3',x:15,y:15,tr:'7778899',ab:200,pessoas:'Desconhecido',vida:'Desconhecido'},
+{cid:'CT',end:'Av. Industrial, 500',x:45,y:48,tr:'8889900',ab:70,pessoas:'11–100'},
+{cid:'CT',end:'R. Pedreira, 9',x:70,y:30,tr:'9990011',ab:130,estrutura:'Risco de queda'},
+{cid:'CT',end:'Clínica Boa Vida',x:30,y:70,tr:'1011121',ab:10,essencial:'Hospital / emergência',reserva:'Não'}
+].forEach(d=>novaOS({...base,...d}));
+
+// ---- regras
+function fato(o,id){if(id==='prazo'){const h=o.prazoH;return h==null?'Sem prazo':h<24?'< 24 h ou vencido':h<=72?'24–72 h':'> 72 h'}
+if(id==='espera'){const m=(Date.now()-o.ab)/MS;return m<=60?'Até 1 h':m<=240?'1–4 h':'> 4 h'}return o.f[id]}
+function faixa(ver,pts){return ver.bands.find(b=>pts>=b.de&&(b.ate==null||pts<=b.ate))}
+function calc(o){const ver=S.versions[o.ver];
+const itens=ver.crit.map(c=>{const l=fato(o,c.id),op=c.ops.find(x=>x.l===l);return{crit:c.nome,op:l,p:op&&op.p!=null?op.p:0}});
+const pts=itens.reduce((a,i)=>a+i.p,0),fb=faixa(ver,pts),cf=fb?fb.cod:4;
+const ap=S.regras.filter(r=>r.on&&r.cond.every(([c,v])=>v.includes(fato(o,c))));
+const nivel=ap.reduce((m,r)=>Math.max(m,r.nivel),0),cod=Math.min(cf,...ap.map(r=>r.min));
+const motivo=ap.length&&cod<cf?'Regra de precedência: '+ap.filter(r=>r.min===cod)[0].nome:'Faixa de pontuação ('+pts+' pts)';
+return{pts,cf,cod,nivel,regras:ap.map(r=>r.nome),itens,ver:ver.v,motivo}}
+function recalc(o,mot){const r=calc(o),a=o.res;o.res=r;if(!a||a.cod!==r.cod||a.pts!==r.pts||a.nivel!==r.nivel){o.hist.unshift(Object.freeze({...r,quando:new Date().toLocaleTimeString('pt-BR'),mot}))}}
+function cmp(a,b){const x=a.res,y=b.res;return y.nivel-x.nivel||x.cod-y.cod||((a.f.tipo==='Corretiva'?0:1)-(b.f.tipo==='Corretiva'?0:1))||y.pts-x.pts||(a.prazoH??1e9)-(b.prazoH??1e9)||a.ab-b.ab||a.num.localeCompare(b.num)}
+function fila(c){return OS.filter(o=>ABERTAS(o.status)&&(c==='*'||o.cid===c)).sort(cmp)}
+function posicao(o){return OS.filter(x=>ABERTAS(x.status)&&x.cid===o.cid).sort(cmp).indexOf(o)+1}
+const pode=p=>{const P=PERFIS[S.perfil].p;return P.includes('*')||P.includes(p)}
+const cidOk=c=>PERFIS[S.perfil].c.includes(c)||PERFIS[S.perfil].c.includes('*')&&true
+const pill=c=>`<span class="pill k${c}">${COD[c]}</span>`
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
+const dist=(a,b)=>Math.round(Math.hypot(a.x-b.x,a.y-b.y)*20)
+const TRANS={'Aberta':['Em triagem','Aguardando despacho','Cancelada'],'Em triagem':['Aguardando despacho','Cancelada'],'Aguardando despacho':['Suspensa','Cancelada','Em triagem'],
+'Suspensa':['Aguardando despacho','Cancelada'],'Em execução':['Aguardando recurso'],'Aguardando recurso':['Em execução'],'Concluída':['Aguardando despacho']};
+
+// ---- navegação
+function setPerfil(p){S.perfil=p;const c=PERFIS[p].c;if(!c.includes(S.cid)&&!c.includes('*'))S.cid=c[0];S.view='fila';S.sel=null;head()}
+function head(){perfil.innerHTML=Object.keys(PERFIS).map(p=>`<option ${p===S.perfil?'selected':''}>${p}</option>`).join('');
+const c=PERFIS[S.perfil].c;cid.innerHTML=Object.entries(CIDADES).map(([k,v])=>`<option value="${k}" ${k===S.cid?'selected':''}>${v}${c.includes(k)||c.includes('*')?'':' (sem acesso)'}</option>`).join('')+
+(c.includes('*')||PERFIS[S.perfil].p.includes('*')?`<option value="*" ${S.cid==='*'?'selected':''}>Todas as cidades</option>`:'');render()}
+function go(v){S.view=v;S.sel=null;render()}
+function tema(){const r=document.documentElement;r.dataset.t=r.dataset.t==='l'?'d':'l'}
+function render(){const adm=PERFIS[S.perfil].p.includes('*');
+const itens=[['fila','Fila',1],['nova','Nova solicitação',pode('nova')||adm],['pont','Pontuação',pode('pontuacao')||adm],['prec','Precedência',adm],['mapa','Mapa',1]].filter(i=>i[2]);
+if(!itens.some(i=>i[0]===S.view))S.view='fila';
+nav.innerHTML=itens.map(i=>`<button aria-current="${S.view===i[0]}" onclick="go('${i[0]}')">${i[1]}</button>`).join('');
+main.innerHTML=S.sel?detalhe():({fila:vFila,nova:vNova,pont:vPont,prec:vPrec,mapa:vMapa}[S.view])()}
+
+// ---- fila
+function vFila(){
+if(S.cid!=='*'&&!cidOk(S.cid))return`<div class="err"><b>403 — fora do seu escopo.</b> Você não tem vínculo com ${CIDADES[S.cid]}. O acesso foi registrado na auditoria. Escolha uma cidade do seu perfil.</div>`;
+if(S.loading){setTimeout(()=>{S.loading=false;render()},600);return`<h2>Fila</h2><div class="sk"></div><div class="sk"></div><div class="sk"></div><p class="mu">Carregando a fila…</p>`}
+if(S.falha)return`<div class="err"><b>Não foi possível carregar a fila.</b> O servidor simulado não respondeu. <button onclick="S.falha=false;S.loading=true;render()">Tentar novamente</button></div>`;
+let l=fila(S.cid);if(PERFIS[S.perfil].p.includes('campo'))l=l.filter(o=>o.desp&&o.desp.eq==='BH-A');
+return`<h2>Fila — ${S.cid==='*'?'todas as cidades':CIDADES[S.cid]} <button onclick="S.falha=true;render()">Simular falha</button></h2>
+<p class="mu">Ordem: precedência, código, corretiva antes de preventiva, pontos, prazo, abertura, nº da OS. Posição calculada dentro da cidade da OS.${PERFIS[S.perfil].p.includes('campo')?' Você vê só as OS da sua equipe (BH-A).':''}</p>
+${l.length?`<div class="tw"><table><tr><th>Pos.</th><th>OS</th><th>Cidade</th><th>Prioridade</th><th>Nível</th><th>Pontos</th><th>Tipo</th><th>Prazo</th><th>Aberta há</th><th>Status</th><th>Endereço</th></tr>
+${l.map(o=>`<tr class="r"><td class="m">${posicao(o)}</td><td><button onclick="S.sel='${o.num}';S.tab='Prioridade';render()" class="m">${o.num}</button></td><td>${o.cid}</td><td>${pill(o.res.cod)}</td><td class="m">${o.res.nivel}</td><td class="m">${o.res.pts}</td><td>${o.f.tipo}</td><td class="m">${o.prazoH==null?'—':o.prazoH+' h'}</td><td class="m">${Math.round((Date.now()-o.ab)/MS)} min</td><td>${o.status}</td><td>${esc(o.end)}</td></tr>`).join('')}</table></div>`
+:`<div class="box">Nenhuma OS aberta nesta visão. Registre uma solicitação em <b>Nova solicitação</b> ou troque de cidade.</div>`}`}
+
+// ---- detalhe
+function detalhe(){const o=OS.find(x=>x.num===S.sel);if(!o)return'';
+if(!cidOk(o.cid)&&!PERFIS[S.perfil].p.includes('*'))return`<div class="err"><b>403.</b> OS de outra cidade. Acesso auditado.</div>`;
+const tabs=['Prioridade','Despacho','Status','Histórico'];let c='';
+if(S.tab==='Prioridade'){const r=o.res;c=`<p>${pill(r.cod)} nível <b class="m">${r.nivel}</b> · <b class="m">${r.pts}</b> pts · faixa: ${pill(r.cf)} · versão <b>v${r.ver}</b> · posição <b class="m">${posicao(o)}</b> em ${CIDADES[o.cid]}</p>
+<p><b>Motivo principal:</b> ${esc(r.motivo)}</p><p><b>Regras de precedência aplicadas:</b> ${r.regras.length?r.regras.map(esc).join('; '):'nenhuma'}</p>
+<div class="tw"><table><tr><th>Critério</th><th>Valor</th><th>Pontos</th></tr>${r.itens.map(i=>`<tr><td>${i.crit}</td><td>${i.op}${/Desconhec|Não ident/.test(i.op)?' <span class="mu">(requer confirmação)</span>':''}</td><td class="m">${i.p}</td></tr>`).join('')}</table></div>`}
+if(S.tab==='Despacho')c=despacho(o);
+if(S.tab==='Status'){const t=TRANS[o.status]||[];c=`<p>Status atual: <b>${o.status}</b></p>${t.length?t.map(s=>{const need=s==='Cancelada'?'cancelar':s==='Aguardando despacho'&&o.status==='Concluída'?'reabrir':'status';
+return`<button ${pode(need)?'':'disabled title="Seu perfil não tem esta permissão"'} onclick="mudar('${o.num}','${s}')">${o.status==='Concluída'?'Reabrir':'→ '+s}</button> `}).join(''):'<p class="mu">Sem transições manuais a partir deste status (o ciclo do despacho conduz as demais).</p>'}<p class="mu">Qualquer outra transição é recusada com 409.</p>
+<p><button onclick="tentaInvalida('${o.num}')">Testar transição inválida</button></p><div id="inv"></div>`}
+if(S.tab==='Histórico')c=`<h3>Resultados de prioridade (imutáveis)</h3><div class="tw"><table><tr><th>Hora</th><th>Código</th><th>Pontos</th><th>Nível</th><th>Versão</th><th>Motivo do cálculo</th></tr>${o.hist.map(h=>`<tr><td class="m">${h.quando}</td><td>${pill(h.cod)}</td><td class="m">${h.pts}</td><td class="m">${h.nivel}</td><td>v${h.ver}</td><td>${esc(h.mot)}</td></tr>`).join('')}</table></div><h3>Eventos</h3>${o.log.map(x=>`<div class="mu m">${esc(x)}</div>`).join('')}`;
+return`<button onclick="S.sel=null;render()">← Voltar à fila</button><h2 class="m" style="margin-top:8px">${o.num} <span class="mu" style="font-weight:400">${esc(o.end)}</span></h2>
+<div class="tabs" role="tablist">${tabs.map(t=>`<button role="tab" aria-selected="${S.tab===t}" onclick="S.tab='${t}';render()">${t}</button>`).join('')}</div><div class="box">${c}</div>`}
+function mudar(n,s){const o=OS.find(x=>x.num===n);if(!(TRANS[o.status]||[]).includes(s))return;
+const fim=()=>{const e=o.status==='Concluída'&&s==='Aguardando despacho';o.status=s;recalc(o,'Mudança de status');render()};
+if(s==='Cancelada'||o.status==='Concluída')ask(s==='Cancelada'?'Motivo do cancelamento':'Justificativa da reabertura',j=>{log(o,`${o.status} → ${s}. Justificativa: ${j}`);fim()});else{log(o,`${o.status} → ${s}`);fim()}}
+function tentaInvalida(n){const o=OS.find(x=>x.num===n);inv.innerHTML=`<div class="err"><b>409.</b> Transição "${o.status} → Concluída" não é permitida pelo fluxo. Use o ciclo do despacho.</div>`}
+
+// ---- despacho
+function despacho(o){const cur=o.desp;let h='';
+if(cur){const e=EQ.find(x=>x.id===cur.eq);const nx={'Equipe designada':['Aceitar (a caminho)','A caminho'],'A caminho':['Iniciar atendimento','Em execução'],'Em execução':['Concluir','Concluída']}[o.status];
+const campo=pode('campo')&&cur.eq==='BH-A'||pode('designar');
+h=`<p>Equipe designada: <b>${e.id}</b>${cur.exc?` <span class="warn">Exceção autorizada: ${esc(cur.exc)}</span>`:''}</p><p><a class="bt" href="${mapsUrl(null,o)}" target="_blank" rel="noopener">Navegar até a OS no Maps</a> <a class="bt" href="${mapsUrl(e,o)}" target="_blank" rel="noopener">Rota a partir da base da equipe</a></p><p class="mu">Coordenadas: ${ll(o).map(v=>v.toFixed(5)).join(", ")} · endereço ${esc(o.end)} · trafo ${o.tr||'—'} · UC ${o.uc||'—'}. ${o.tr?'':'Localização aproximada.'}</p>
+${nx?`<button class="pr" ${campo?'':'disabled'} onclick="ciclo('${o.num}')">${nx[0]}</button> `:''}<button ${pode('designar')?'':'disabled'} onclick="remover('${o.num}')">Remover equipe</button>`}
+else if(['Aguardando despacho','Suspensa'].includes(o.status)){
+const rec=EQ.map(e=>({e,comp:!o.qual||e.q.includes(o.qual),disp:e.carga<e.cap,d:dist(o,e),int:e.cid!==o.cid}))
+.sort((a,b)=>(b.comp-a.comp)||(b.disp-a.disp)||(a.int-b.int)||a.d-b.d);
+h=`<p class="mu">Recomendação: compatibilidade e disponibilidade antes da distância. Distância em linha reta (sem rota), sem tempo estimado. "Ir no Maps" abre a rota real, com distância e tempo.${o.qual?' Exige: '+o.qual+'.':''}</p><div class="tw"><table><tr><th>Equipe</th><th>Cidade</th><th>Carga</th><th>Compatível</th><th>Distância (linha reta)</th><th>Rota</th><th></th></tr>
+${rec.map(r=>`<tr><td><b>${r.e.id}</b></td><td>${r.e.cid}${r.int?' (apoio intermunicipal)':''}</td><td class="m">${r.e.carga}/${r.e.cap}</td><td>${r.comp?'sim':'não'}</td><td class="m">${r.d} m</td><td><a class="bt" href="${mapsUrl(r.e,o)}" target="_blank" rel="noopener">Ir no Maps</a></td>
+<td><button ${pode('designar')?'':'disabled'} onclick="designar('${o.num}','${r.e.id}')">Designar</button></td></tr>`).join('')}</table></div><div id="dmsg"></div>`}
+else h='<p class="mu">Esta OS não está em status que permita designar equipe. Coloque-a em "Aguardando despacho" na aba Status.</p>';return h}
+function designar(n,id){const o=OS.find(x=>x.num===n),e=EQ.find(x=>x.id===id),m=document.getElementById('dmsg');
+if(e.carga>=e.cap){m.innerHTML=`<div class="err"><b>409 — capacidade esgotada.</b> A equipe ${id} já está com ${e.carga}/${e.cap}. Nem exceção libera este limite; escolha outra equipe.</div>`;return}
+const prob=[];if(e.cid!==o.cid)prob.push('equipe de outra cidade (apoio intermunicipal)');if(o.qual&&!e.q.includes(o.qual))prob.push('equipe sem a qualificação "'+o.qual+'"');
+const fim=exc=>{e.carga++;o.desp={eq:id,exc};o.status='Equipe designada';log(o,`Designada ${id}${exc?' (exceção: '+exc+')':''}`);recalc(o,'Despacho');render()};
+if(!prob.length)return fim(null);
+if(!pode('excecao')){m.innerHTML=`<div class="err"><b>Designação bloqueada:</b> ${prob.join('; ')}. Só o Supervisor pode autorizar exceção de despacho. Peça a ele ou escolha outra equipe.</div>`;return}
+ask('Justificativa da exceção: '+prob.join('; '),j=>fim(j))}
+function ciclo(n){const o=OS.find(x=>x.num===n),e=EQ.find(x=>x.id===o.desp.eq);const m={'Equipe designada':'A caminho','A caminho':'Em execução','Em execução':'Concluída'}[o.status];
+o.status=m;if(m==='Concluída')e.carga--;log(o,'Despacho → '+m);render()}
+function remover(n){const o=OS.find(x=>x.num===n),e=EQ.find(x=>x.id===o.desp.eq);e.carga--;log(o,`Equipe ${e.id} removida; despacho anterior preservado`);o.desp=null;o.status='Aguardando despacho';render()}
+
+// ---- nova
+function vNova(){const sel=(id,l)=>`<label>${l}<select id="n_${id}">${OPC[id].map(x=>`<option>${x}</option>`).join('')}</select></label>`;
+return`<h2>Nova solicitação</h2><div class="box"><div class="row">
+<label>Município<select id="n_cid">${Object.entries(CIDADES).filter(([k])=>cidOk(k)).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+<label>Endereço<input id="n_end"></label><label>Coord. X (0–100)<input id="n_x" type="number" size="4" style="width:80px"></label><label>Coord. Y<input id="n_y" type="number" style="width:80px"></label>
+<label>Transformador (texto, ≥ 4 dígitos)<input id="n_tr"></label><label>UC (6–10 dígitos)<input id="n_uc"></label>
+${sel('vida','Risco à vida')}${sel('essencial','Serviço essencial')}${sel('reserva','Fonte de reserva')}${sel('pessoas','Pessoas afetadas')}${sel('estrutura','Estrutura')}${sel('tipo','Tipo')}
+<label>Prazo-limite (h, vazio = sem)<input id="n_prazo" type="number" style="width:90px"></label><label>Exige qualificação<select id="n_qual"><option value="">Nenhuma</option><option>Linha viva</option></select></label></div>
+<p class="mu">Não sabe um dado? Deixe a opção "Desconhecido": ela soma pontos e pede confirmação, nunca vale zero.</p>
+<button class="pr" onclick="enviaNova(false)">Registrar solicitação</button></div><div id="nmsg"></div>`}
+function lerNova(){const g=i=>document.getElementById('n_'+i).value;return{cid:g('cid'),end:g('end'),x:g('x'),y:g('y'),tr:g('tr'),uc:g('uc'),vida:g('vida'),essencial:g('essencial'),reserva:g('reserva'),pessoas:g('pessoas'),estrutura:g('estrutura'),tipo:g('tipo'),prazoH:g('prazo'),qual:g('qual')}}
+function enviaNova(forca){const d=lerNova(),m=nmsg,er=[];
+if(!d.end.trim())er.push('Informe o endereço.');if(d.x===''||d.y===''||d.x<0||d.x>100||d.y<0||d.y>100)er.push('Informe coordenadas X e Y entre 0 e 100.');
+if(d.tr&&!/^\d{4,12}$/.test(d.tr))er.push('Transformador: só dígitos, de 4 a 12.');if(d.uc&&!/^\d{6,10}$/.test(d.uc))er.push('UC: de 6 a 10 dígitos.');
+if(er.length){m.innerHTML=`<div class="err"><b>Corrija antes de registrar:</b><br>${er.join('<br>')}</div>`;return}
+const o2={x:+d.x,y:+d.y},sug=OS.filter(o=>ABERTAS(o.status)&&o.cid===d.cid&&Date.now()-o.ab<=864e5&&(dist(o,o2)<=300||(d.tr&&o.tr===d.tr)||(d.uc&&o.uc===d.uc)));
+if(sug.length&&!forca){m.innerHTML=`<div class="warn"><b>Possível duplicidade (sugestão, nunca automática).</b><table>${sug.map(o=>`<tr><td class="m">${o.num}</td><td>${pill(o.res.cod)}</td><td>${esc(o.end)}</td><td class="m">${dist(o,o2)} m${d.tr&&o.tr===d.tr?' · mesmo trafo':''}${d.uc&&o.uc===d.uc?' · mesma UC':''}</td><td><button onclick="vincula('${o.num}')">Vincular a esta OS</button></td></tr>`).join('')}</table>
+<button onclick="enviaNova(true)">Não é duplicada, criar nova OS</button></div>`;return}
+const o=novaOS(d);m.innerHTML=`<div class="okm">Registrada: <b class="m">${o.num}</b> — ${pill(o.res.cod)} · posição ${posicao(o)}. <button onclick="S.sel='${o.num}';S.tab='Prioridade';S.view='fila';render()">Abrir OS</button></div>`}
+function vincula(n){const o=OS.find(x=>x.num===n);o.sol++;log(o,'Nova solicitação vinculada ('+o.sol+')');recalc(o,'Solicitação vinculada');nmsg.innerHTML=`<div class="okm">Solicitação vinculada à <b class="m">${n}</b> (${o.sol} solicitações). Nenhuma OS nova foi criada.</div>`}
+
+// ---- pontuação
+function validar(d){const er=[],av=[];d.crit.forEach(c=>c.ops.forEach(o=>{if(o.p==null)er.push(`${c.nome} · "${o.l}": sem pontos definidos (nulo ≠ zero).`);else if(o.p<0||o.p>100||!Number.isInteger(o.p))er.push(`${c.nome} · "${o.l}": use inteiro de 0 a 100.`);
+else if(o.p===0&&/Desconhec/.test(o.l))av.push(`${c.nome} · "${o.l}" vale 0 sem exigir confirmação: informação desconhecida não é risco zero.`)}));
+const b=[...d.bands].sort((a,c)=>a.de-c.de);if(b[0].de!==0)er.push('Faixas: a primeira deve começar em 0.');
+b.forEach((x,i)=>{if(x.ate!=null&&x.ate<x.de)er.push(`Faixa ${i+1}: fim menor que início.`);const n=b[i+1];if(n&&x.ate!=null){if(n.de>x.ate+1)er.push(`Lacuna entre ${x.ate} e ${n.de}.`);if(n.de<=x.ate)er.push(`Sobreposição em ${n.de}–${x.ate}.`)}if(!n&&x.ate!=null)er.push('A última faixa deve ir até "sem limite".');if(n&&x.ate==null)er.push('Só a última faixa pode ser "sem limite".')});
+const ess=d.crit.find(c=>c.id==='essencial'),h=ess.ops[1].p,z=ess.ops[0].p;if(h!=null&&z!=null&&h<z)av.push('Essencial vale menos que o padrão "Não".');return{er,av}}
+function vPont(){const d=S.draft,v=validar(d),act=S.versions.at(-1);
+return`<h2>Pontuação — rascunho sobre v${act.v} (publicada)</h2><p class="mu">Versão publicada nunca é editada: edite o rascunho e publique uma nova versão. Valores demonstrativos.</p>
+${v.er.map(e=>`<div class="err">${e}</div>`).join('')}${v.av.map(e=>`<div class="warn">Alerta: ${e}</div>`).join('')}
+<div class="tw"><table><tr><th>Critério</th><th>Opção</th><th>Pontos</th></tr>${d.crit.map((c,ci)=>c.ops.map((o,oi)=>`<tr><td>${oi?'':c.nome}</td><td>${o.l}</td><td><input class="m" style="width:70px" value="${o.p??''}" aria-label="${c.nome} ${o.l}" onchange="setP(${ci},${oi},this.value)"></td></tr>`).join('')).join('')}</table></div>
+<h3>Faixas → código</h3><table><tr><th>De</th><th>Até (vazio = sem limite)</th><th>Código</th></tr>${d.bands.map((b,i)=>`<tr><td><input class="m" style="width:70px" value="${b.de}" aria-label="De" onchange="setB(${i},'de',this.value)"></td><td><input class="m" style="width:70px" value="${b.ate??''}" aria-label="Até" onchange="setB(${i},'ate',this.value)"></td><td>${pill(b.cod)}</td></tr>`).join('')}</table>
+<h3>Publicar</h3><div class="box"><div class="row"><label>Justificativa (obrigatória)<textarea id="p_j" rows="2"></textarea></label><label>Início de vigência<input id="p_v" type="datetime-local"></label>
+<label>Modo<select id="p_m"><option value="novas">Somente novas OS</option><option value="reclassificar">Reclassificar as OS abertas</option></select></label></div><p><button class="pr" onclick="publicar()" ${v.er.length?'disabled title="Corrija os erros acima"':''}>Publicar nova versão</button> <button onclick="S.draft=JSON.parse(JSON.stringify(S.versions.at(-1)));render()">Descartar rascunho</button></p><div id="pmsg"></div></div>
+<h3>Versões</h3>${S.versions.map(x=>`<div class="m">v${x.v} · ${x.modo} · ${esc(x.just)}</div>`).join('')}`}
+function setP(ci,oi,val){S.draft.crit[ci].ops[oi].p=val===''?null:+val;render()}
+function setB(i,k,val){S.draft.bands[i][k]=val===''?null:+val;render()}
+function publicar(){const j=p_j.value.trim(),vg=p_v.value,m=p_m.value;
+if(!j||!vg){pmsg.innerHTML=`<div class="err">Informe a justificativa e o início da vigência para publicar.</div>`;return}
+const n=S.versions.length+1,nv={v:n,crit:JSON.parse(JSON.stringify(S.draft.crit)),bands:JSON.parse(JSON.stringify(S.draft.bands)).sort((a,b)=>a.de-b.de),just:j,modo:m==='novas'?'somente novas OS':'reclassificou abertas'};
+S.versions.push(nv);S.draft=JSON.parse(JSON.stringify(nv));
+if(m==='reclassificar')OS.filter(o=>ABERTAS(o.status)).forEach(o=>{o.ver=S.versions.length-1;recalc(o,`Reclassificação pela v${n}`)});
+render();pmsg&&0;main.insertAdjacentHTML('beforeend',`<div class="okm">Publicada a v${n} (${nv.modo}). O histórico anterior das OS foi mantido.</div>`)}
+
+// ---- precedência
+function vPrec(){return`<h2>Regras de precedência (camada A, administrador)</h2><p class="mu">Cada regra é um E lógico de condições. Alterar exige justificativa e gera nova versão (atual: v${S.rv}).</p>
+<div class="tw"><table><tr><th>Ativa</th><th>Regra</th><th>Condição</th><th>Nível</th><th>Prioridade mínima</th></tr>${S.regras.map((r,i)=>`<tr><td><input type="checkbox" ${r.on?'checked':''} onchange="altRegra(${i},'on',this.checked)" aria-label="Ativar ${r.nome}"></td><td>${r.nome}</td><td>${r.cond.map(c=>NOME[c[0]]+' ∈ '+c[1].join('/')).join(' E ')}</td>
+<td><input class="m" type="number" min="1" max="10" style="width:60px" value="${r.nivel}" onchange="altRegra(${i},'nivel',+this.value)"></td><td><select onchange="altRegra(${i},'min',+this.value)">${COD.map((c,k)=>`<option value="${k}" ${k===r.min?'selected':''}>${c}</option>`).join('')}</select></td></tr>`).join('')}</table></div>`}
+function altRegra(i,k,v){if(k==='nivel'&&(v<1||v>10)){render();return}ask('Justificativa da alteração da regra',j=>{S.regras[i][k]=v;S.rv++;OS.filter(o=>ABERTAS(o.status)).forEach(o=>recalc(o,`Regra ${S.regras[i].id} alterada: ${j}`));render()},()=>render())}
+
+// ---- mapa
+const CEN={BH:[-19.9167,-43.9345],CT:[-19.9319,-44.0539]};
+const ll=o=>{const c=CEN[o.cid];return[c[0]+(50-o.y)*0.0001797,c[1]+(o.x-50)*0.0001911]};
+let LM=null;const MV={};
+function esq(c,os,sel){let s=`<svg viewBox="0 0 400 400" style="width:100%;max-width:560px;background:var(--p1);border:1px solid var(--ln)" role="img" aria-label="Mapa esquemático de ${CIDADES[c]}">`;
+for(let i=0;i<=100;i+=20)s+=`<path d="M${i*4} 0V400M0 ${i*4}H400" stroke="var(--ln)" stroke-width=".5"/>`;
+if(sel)s+=`<circle cx="${sel.x*4}" cy="${sel.y*4}" r="60" fill="none" stroke="var(--ac)" stroke-dasharray="4 3"/>`;
+EQ.filter(e=>e.cid===c).forEach(e=>{s+=`<rect x="${e.x*4-6}" y="${e.y*4-6}" width="12" height="12" fill="var(--tx)"/><text x="${e.x*4+9}" y="${e.y*4+3}">${e.id} ${e.carga}/${e.cap}</text>`;
+if(sel)s+=`<line x1="${e.x*4}" y1="${e.y*4}" x2="${sel.x*4}" y2="${sel.y*4}" stroke="var(--mu)" stroke-dasharray="2 3"/>`});
+os.forEach(o=>{s+=`<g tabindex="0" role="button" aria-label="${o.num}" style="cursor:pointer" onclick="S.msel='${o.num}';render()" onkeydown="if(event.key==='Enter'){S.msel='${o.num}';render()}"><circle cx="${o.x*4}" cy="${o.y*4}" r="8" fill="var(--c${o.res.cod})" stroke="var(--bg)"/><text x="${o.x*4+10}" y="${o.y*4-6}">${o.num.slice(-4)}</text></g>`});
+return s+'</svg>'}
+function vMapa(){const c=S.cid==='*'?'BH':S.cid,os=fila(c),sel=OS.find(o=>o.num===S.msel&&o.cid===c);
+const falta=S.mm!=='esq'&&typeof L==='undefined',real=S.mm!=='esq'&&!falta;
+const aviso=falta?`<div class="warn"><b>Mapa real indisponível.</b> A biblioteca do mapa não carregou (sem internet?). Mostrando o esquemático. Reconecte e recarregue a página para voltar ao mapa real.</div>`:'';
+const tg=`<div class="tabs" role="tablist"><button role="tab" aria-selected="${real}" onclick="S.mm='real';render()">Mapa real</button><button role="tab" aria-selected="${!real}" onclick="S.mm='esq';render()">Esquemático</button></div>`;
+if(real)setTimeout(()=>initMap(c),0);
+const info=sel?`<div class="box"><b class="m">${sel.num}</b> ${pill(sel.res.cod)}<br>${esc(sel.end)}${EQ.filter(e=>e.cid===c).map(e=>`<div>${e.id}: <span class="m">${dist(sel,e)} m</span> em linha reta <a class="bt" href="${mapsUrl(e,sel)}" target="_blank" rel="noopener">Ir no Maps</a></div>`).join('')}<div>Outras OS dentro de 300 m: <span class="m">${os.filter(o=>o!==sel&&dist(o,sel)<=300).map(o=>o.num.slice(-4)).join(', ')||'nenhuma'}</span></div></div>`:'<div class="box mu">Selecione uma OS no mapa ou na lista.</div>';
+return`<h2>Mapa — ${CIDADES[c]}</h2>${tg}${aviso}<p class="mu">Cor = prioridade. Selecione uma OS para ver o raio de 300 m (duplicidade) e a distância em <b>linha reta</b>, sem rota nem tempo. As posições são fictícias, em torno do centro da cidade.</p>
+<div class="row" style="align-items:start"><div style="flex:1 1 340px;min-width:0">${real?'<div id="lmap" style="height:440px;border:1px solid var(--ln)"></div>':esq(c,os,sel)}</div><div style="flex:0 1 260px">${info}${[0,1,2,3,4].map(k=>`<div>${pill(k)}</div>`).join('')}
+<h3>OS no mapa</h3>${os.map(o=>`<div><button class="m" onclick="S.msel='${o.num}';render()">${o.num.slice(-4)}</button> ${pill(o.res.cod)}</div>`).join('')||'<span class="mu">Sem OS abertas nesta cidade.</span>'}</div></div>`}
+function initMap(c){const el=document.getElementById('lmap');if(!el||typeof L==='undefined')return;if(LM){LM.remove();LM=null}
+const os=fila(c),sel=OS.find(o=>o.num===S.msel&&o.cid===c),css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim(),pts=[];
+LM=L.map(el);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(LM);
+if(sel)L.circle(ll(sel),{radius:300,color:css('--ac'),fill:false,dashArray:'6 4',weight:2}).addTo(LM);
+EQ.filter(e=>e.cid===c).forEach(e=>{const p=ll(e);pts.push(p);L.marker(p,{icon:L.divIcon({className:'',html:`<div style="background:#dbe4ee;color:#0f1419;padding:1px 4px;font:700 10px ui-monospace,monospace;border:1px solid #0f1419;white-space:nowrap">${e.id} ${e.carga}/${e.cap}</div>`,iconSize:null})}).addTo(LM);
+if(sel)L.polyline([p,ll(sel)],{color:'#566879',dashArray:'2 6',weight:1.5}).addTo(LM)});
+os.forEach(o=>{const p=ll(o);pts.push(p);const m=L.circleMarker(p,{radius:o===sel?12:9,color:'#fff',weight:2,fillColor:css('--c'+o.res.cod),fillOpacity:1}).addTo(LM);
+m.bindTooltip(o.num.slice(-4)+' · '+COD[o.res.cod]);m.on('click',()=>{S.msel=o.num;render()})});
+if(MV[c])LM.setView(MV[c].c,MV[c].z);else LM.fitBounds(pts,{padding:[30,30],maxZoom:16});
+LM.on('moveend',()=>{MV[c]={c:LM.getCenter(),z:LM.getZoom()}})}
+
+// ---- diálogo de justificativa
+let _ok,_no;function ask(t,ok,no){dt.textContent=t;dj.value='';de.hidden=true;_ok=ok;_no=no;dlg.showModal();dj.focus();dlg.onclose=()=>{if(_no&&dlg.returnValue!=='ok')_no()}}
+function dlgOk(){const j=dj.value.trim();if(!j){de.hidden=false;de.textContent='A justificativa é obrigatória. Escreva o motivo para continuar.';return}dlg.returnValue='ok';const f=_ok;_no=null;dlg.close();f(j)}
+setInterval(()=>{if(!S.sel&&S.view==='fila'&&!S.loading&&!dlg.open&&!S.falha){OS.filter(o=>ABERTAS(o.status)).forEach(o=>recalc(o,'Reclassificação automática (tempo)'));render()}},60000);
+head();
+</script>
+</body>
+</html>
