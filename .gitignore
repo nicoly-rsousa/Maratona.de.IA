@@ -5,3 +5,7 @@ dist
 .env
 .env.*
 !.env.example
+
+# ferramentas locais de agente
+.agents/
+skills-lock.json
