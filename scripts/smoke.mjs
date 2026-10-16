@@ -169,12 +169,15 @@ await teste("detalhe OS (admin): UC completa", async () => {
 // Supervisor, Equipe de campo e Usuário Chave levam 403 antes de qualquer lógica de UC rodar).
 // Por isso só dá pra provar a máscara de UC nesta rota com atendente (mascarada) e admin (completa).
 let osComUC = null;
-await teste("busca uma OS aberta com UC em BH p/ testar duplicidade", async () => {
+await teste("busca uma OS aberta com UC em BH (dentro da janela de duplicidade) p/ testar", async () => {
+  // sugerirDuplicidade só considera OS abertas dentro de DUP_JANELA_H (padrão 24h) — sem esse filtro,
+  // uma OS de seed mais antiga nunca aparece como candidata, mesmo com UC igual.
+  const desde = new Date(Date.now() - 24 * 3_600_000).toISOString();
   const { data, error } = await admin.from("ordens_servico").select("id, uc")
-    .eq("cidade_id", "BH").not("status", "in", "(Concluída,Cancelada)").not("uc", "is", null).limit(1);
+    .eq("cidade_id", "BH").not("status", "in", "(Concluída,Cancelada)").not("uc", "is", null).gte("aberta_em", desde).limit(1);
   exige(!error, error?.message);
   osComUC = data?.[0] ?? null;
-  return osComUC ? "OS com UC encontrada" : "nenhuma OS aberta em BH com UC; testes de UC em duplicidade serão pulados";
+  return osComUC ? "OS com UC encontrada" : "nenhuma OS aberta em BH com UC dentro da janela; testes de UC em duplicidade serão pulados";
 });
 await teste("duplicidade BH (atendente): mesma UC mascarada", async () => {
   if (!osComUC) return "sem OS com UC; pulado";
