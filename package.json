@@ -6,6 +6,9 @@
     "test": "npm run test -w @farol/shared",
     "dev:api": "npm run dev -w @farol/api",
     "build:api": "npm run build -w @farol/api",
+    "seed": "npm run seed -w @farol/api",
+    "seed:os": "npm run seed:os -w @farol/api",
+    "seed:cr": "npm run seed:cr -w @farol/api",
     "dev:web": "npm run dev -w @farol/web",
     "build:web": "npm run build -w @farol/web",
     "typecheck": "npm run typecheck -w @farol/shared && npm run typecheck -w @farol/api && npm run typecheck -w @farol/web"

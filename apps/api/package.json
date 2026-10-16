@@ -11,6 +11,7 @@
     "job:reclassificar:prod": "node dist/jobs/reclassificar.js",
     "seed": "tsx --env-file=.env src/seed.ts",
     "seed:os": "tsx --env-file=.env src/seed-os.ts",
+    "seed:cr": "tsx --env-file=.env src/seed-cr.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {

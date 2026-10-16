@@ -20,11 +20,11 @@ function alternarTema() {
 }
 
 /** Telas do protótipo. `perm` = qualquer permissão do /me que libera o item; sem `href` = ainda não implementada. */
-const ITENS: { rotulo: string; href?: string; perm?: string[] }[] = [
+const ITENS: { rotulo: string; href?: string; perm?: string[]; semPerfil?: string }[] = [
   { rotulo: "Fila", href: "/fila" },
   { rotulo: "Nova solicitação", href: "/nova", perm: ["nova"] },
   { rotulo: "Pontuação", href: "/pontuacao", perm: ["pontuacao", "pontuacao_aprovar"] },
-  { rotulo: "Precedência", perm: ["regras"] },
+  { rotulo: "Precedência", href: "/precedencia", perm: ["regras", "consultar"], semPerfil: "Usuário Chave" },
   { rotulo: "Mapa", href: "/mapa", perm: ["consultar"] },
 ];
 
@@ -78,7 +78,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <div className="flex min-h-[calc(100vh-46px)] max-[700px]:flex-col">
         <nav aria-label="Telas" className="flex w-[150px] flex-col gap-1 border-r border-ln p-2 max-[700px]:w-auto max-[700px]:flex-row max-[700px]:flex-wrap max-[700px]:border-b max-[700px]:border-r-0">
-          {ITENS.filter((i) => !i.perm || i.perm.some((p) => ator?.permissoes.includes(p))).map((i) =>
+          {ITENS.filter((i) => i.semPerfil !== ator?.perfil && (!i.perm || i.perm.some((p) => ator?.permissoes.includes(p)))).map((i) =>
             i.href ? (
               <Link
                 key={i.rotulo}

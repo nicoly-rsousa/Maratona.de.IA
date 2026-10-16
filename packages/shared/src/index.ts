@@ -11,3 +11,5 @@ export * from "./despacho";
 export * from "./versionamento";
 export * from "./pontuacao";
 export * from "./mapa";
+export * from "./cenarios";
+export * from "./regras";

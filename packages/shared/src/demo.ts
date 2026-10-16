@@ -53,7 +53,7 @@ export interface OSDemo {
   exigeQualificacao?: string;
 }
 
-const FATOS_BASE_DEMO = { vida: "Nenhum risco", essencial: "Não", reserva: "Sim", pessoas: "1–10", estrutura: "Sem risco" };
+export const FATOS_BASE_DEMO = { vida: "Nenhum risco", essencial: "Não", reserva: "Sim", pessoas: "1–10", estrutura: "Sem risco" };
 const osDemo = (d: Omit<OSDemo, "tipo" | "prazoH" | "fatos"> & Partial<Pick<OSDemo, "tipo" | "prazoH">> & { fatos?: Record<string, string> }): OSDemo => ({
   tipo: "Corretiva", prazoH: null, ...d, fatos: { ...FATOS_BASE_DEMO, ...d.fatos },
 });
