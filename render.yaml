@@ -3,7 +3,7 @@ services:
   - type: web
     name: farol-api
     runtime: node
-    plan: starter            # free dorme após inatividade e quebra o job de 60 s
+    plan: free               # no Free, o serviço dorme após cerca de 15 min sem uso; o setInterval de 60 s só roda enquanto estiver acordado
     region: oregon           # troque por 'virginia' se preferir; ideal: mesma região do Supabase
     rootDir: .
     buildCommand: npm ci && npm run build:api
