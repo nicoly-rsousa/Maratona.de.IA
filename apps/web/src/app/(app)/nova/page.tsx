@@ -302,7 +302,7 @@ export default function NovaSolicitacaoPage() {
                         {!p.opcoes.some((o) => o.desconhecida) && <option value="">Não informado</option>}
                         {desconhecidaPorUltimo(p.opcoes).map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
                       </select>
-                      {sel?.requerConfirmacao && <span id={`${id}_rc`} className="mu whitespace-nowrap text-[11px]">requer confirmação</span>}
+                      {sel?.requerConfirmacao && <span id={`${id}_rc`} className="mu" title="requer confirmação"><span aria-hidden="true">*</span><span className="sr-only">requer confirmação</span></span>}
                     </span>
                   </Campo>
                 );
