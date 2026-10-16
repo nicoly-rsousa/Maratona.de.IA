@@ -128,8 +128,8 @@ export function Editor({ conteudo, onEditar, somenteLeitura }: Props) {
 
       <h3>Faixas → código</h3>
       <div className="tw">
-        <table className="tabela">
-          <thead><tr><th>De</th><th>Até (vazio = sem limite)</th><th>Código</th></tr></thead>
+        <table className="tabela !w-auto">
+          <thead><tr><th>De</th><th>Até (vazio = sem limite)</th><th className="!text-center">Código</th></tr></thead>
           <tbody>
             {conteudo.faixas.map((f, i) => (
               <tr key={i}>
@@ -141,7 +141,7 @@ export function Editor({ conteudo, onEditar, somenteLeitura }: Props) {
                   <Numero valor={f.ate} vazio="sem limite" rotulo="Faixa: até" desabilitado={somenteLeitura}
                     onMudar={(v) => onEditar((d) => { d.faixas[i]!.ate = v; })} />
                 </td>
-                <td><Pill codigo={f.cod} /></td>
+                <td className="!text-center"><Pill codigo={f.cod} /></td>
               </tr>
             ))}
           </tbody>
