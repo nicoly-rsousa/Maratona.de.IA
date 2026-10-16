@@ -16,7 +16,8 @@ export interface MapaProps {
   /** muda quando o mapa deve reenquadrar (ex.: troca de cidade); atualizações de dados não reenquadram */
   chave: string;
   rotulo: string;
-  altura?: number;
+  /** px ou qualquer medida CSS (ex.: `max(560px, calc(100dvh - 150px))`) */
+  altura?: number | string;
   onSelecionar?: (id: string) => void;
   /** modo "escolher o ponto": clique no mapa devolve latitude/longitude já normalizadas */
   onClicar?: (p: { lat: number; lng: number }) => void;
@@ -128,7 +129,7 @@ export function MapaLeaflet({ os, equipes, mostrarEquipes, selecionadaId, raioM,
             pathOptions={{ color: "#fff", weight: 2, fillColor: cor[`--c${o.codigo}`] || "#888", fillOpacity: 1 }}
             eventHandlers={onSelecionar ? { click: () => onSelecionar(o.id) } : undefined}
           >
-            <Tooltip>{o.num} · {CODIGOS[o.codigo] ?? `Código ${o.codigo}`}</Tooltip>
+            <Tooltip>{o.num} · {CODIGOS[o.codigo] ?? `Código ${o.codigo}`}{onSelecionar ? " — clique para abrir a rota no Maps" : ""}</Tooltip>
           </CircleMarker>
         ))}
         {ponto && (

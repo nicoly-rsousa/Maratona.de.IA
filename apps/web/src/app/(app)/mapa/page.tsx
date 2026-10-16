@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { distanciasAteEquipes, ordenarOSMapa, osNoRaio, temPonto, type OSMapa, type RespostaMapa } from "@farol/shared";
+import { distanciasAteEquipes, ordenarOSMapa, osNoRaio, temPonto, urlMapas, type OSMapa, type RespostaMapa } from "@farol/shared";
 import { api } from "@/lib/api";
 import { Carregando, ErroApi, Pill } from "@/components/ui";
 import { Mapa } from "@/components/mapa";
@@ -16,6 +16,11 @@ function Detalhe({ sel, d, mostrarEquipes }: { sel: OSMapa; d: RespostaMapa; mos
     <div className="box">
       <Link href={`/os/${sel.id}`} className="m text-ac underline">{sel.num}</Link> <Pill codigo={sel.codigo} />
       <div className="mu">{sel.tipo} · {sel.status} · nível <span className="m">{sel.nivel}</span></div>
+      {temPonto(sel) && (
+        <p>
+          <a className="bt" href={urlMapas({ lat: sel.lat, lng: sel.lng })} target="_blank" rel="noopener noreferrer">Navegar até a OS no Maps</a>
+        </p>
+      )}
       {!temPonto(sel) && (
         <div className="warn">Sem coordenadas: <b>localização aproximada</b>. Esta OS não aparece no mapa até alguém informar o local.</div>
       )}
@@ -56,6 +61,12 @@ export default function MapaPage() {
   const [selId, setSelId] = useState<string | null>(null);
   const [mostrarEquipes, setMostrarEquipes] = useState(true);
 
+  // Clique no ponto do mapa: seleciona a OS e abre a rota no Google Maps (origem = posição atual do usuário, calculada pelo Maps).
+  function abrirRota(o: OSMapa) {
+    setSelId(o.id);
+    if (temPonto(o)) window.open(urlMapas({ lat: o.lat, lng: o.lng }), "_blank", "noopener,noreferrer");
+  }
+
   const q = useQuery({
     queryKey: ["mapa", cidade],
     queryFn: () => api<RespostaMapa>(`/mapa?cidade=${encodeURIComponent(cidade)}`),
@@ -82,12 +93,12 @@ export default function MapaPage() {
       ) : d && (
         <>
           <p className="mu">
-            Cor = prioridade. Selecione uma OS no mapa ou na lista para ver o raio de {d.raioM} m (duplicidade) e a distância em{" "}
+            Cor = prioridade. <b>Clique num ponto do mapa para abrir a rota no Google Maps.</b> Selecione uma OS na lista para ver o raio de {d.raioM} m (duplicidade) e a distância em{" "}
             <b>linha reta</b> até as equipes, sem rota nem tempo.
             {ator.perfil === "Equipe de campo" && <> Você vê só as OS da sua equipe ({ator.equipeId ?? "sem equipe"}).</>}
           </p>
           <div className="row" style={{ alignItems: "start" }}>
-            <div style={{ flex: "1 1 340px", minWidth: 0 }}>
+            <div style={{ flex: "1 1 560px", minWidth: 0 }}>
               <Mapa
                 os={d.os}
                 equipes={d.equipes}
@@ -97,7 +108,8 @@ export default function MapaPage() {
                 centro={d.centro}
                 chave={cidade}
                 rotulo={`Mapa de ${nome}`}
-                onSelecionar={setSelId}
+                onSelecionar={(id) => { const o = d.os.find((x) => x.id === id); if (o) abrirRota(o); }}
+                altura="max(560px, calc(100dvh - 170px))"
               />
               {d.os.length === 0 && <p className="mu" role="status">Sem OS abertas nesta cidade.</p>}
             </div>
