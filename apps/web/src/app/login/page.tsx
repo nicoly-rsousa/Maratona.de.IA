@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, supabaseConfigurado } from "@/lib/supabase";
 import { useAuth } from "../providers";
+import { IconeFarol } from "@/components/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto mt-16 w-[92%] max-w-sm">
-      <h1 className="mb-1 text-[15px] font-bold">Farol</h1>
+      <h1 className="mb-1 flex items-center gap-1.5 text-[15px] font-bold"><IconeFarol tamanho={20} />Farol</h1>
       <p className="mu mb-3">Fila e despacho de ordens de serviço</p>
       <form onSubmit={entrar} className="box flex flex-col gap-3">
         {!supabaseConfigurado() && (

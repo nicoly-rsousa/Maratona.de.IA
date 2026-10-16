@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import type { Ator, Cidade } from "@/lib/types";
 import { Carregando, ErroApi } from "@/components/ui";
+import { IconeFarol } from "@/components/logo";
 import { useAuth } from "../providers";
 import { AppProvider } from "./app-context";
 
@@ -60,7 +61,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <header className="flex flex-wrap items-center gap-2 border-b border-ln bg-p1 px-3 py-2">
-        <b className="mr-2 text-[15px]">Farol</b>
+        <b className="mr-2 inline-flex items-center gap-1.5 text-[15px]"><IconeFarol />Farol</b>
         {ator && <span className="mu">Usuário: <b className="font-semibold text-tx">{ator.nome}</b> · {ator.perfil}</span>}
         {ready && (
           <label className="mu flex items-center gap-1">
