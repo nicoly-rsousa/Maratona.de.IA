@@ -168,9 +168,9 @@ export function Painel({ estado, escopo, escopoNome, podeEditar, podeAprovar, at
           <h3>Publicar</h3>
           <div className="box">
             <div className="row">
-              <label>
+              <label className="min-w-[280px] max-w-[520px] flex-1">
                 Justificativa (obrigatória)
-                <textarea rows={2} value={just} onChange={(e) => { setJust(e.target.value); setFaltou(false); }} />
+                <textarea rows={2} className="w-full" value={just} onChange={(e) => { setJust(e.target.value); setFaltou(false); }} />
               </label>
               <label>
                 Início de vigência

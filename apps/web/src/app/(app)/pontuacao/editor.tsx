@@ -52,9 +52,9 @@ export function Editor({ conteudo, onEditar, somenteLeitura }: Props) {
     <>
       <p className="mu">Campo de pontos vazio = <b>sem pontos definidos</b> (não é zero) e bloqueia a publicação.</p>
       <div className="tw">
-        <table className="tabela">
+        <table className="tabela !w-auto">
           <thead>
-            <tr><th>Opção</th><th>Pontos</th><th>Requer confirmação</th><th>Desconhecida</th></tr>
+            <tr><th className="min-w-[220px]">Opção</th><th>Pontos</th><th className="!text-center">Requer confirmação</th><th className="!text-center">Desconhecida</th></tr>
           </thead>
           {conteudo.criterios.map((c, ci) => (
             <tbody key={c.id} className={c.habilitado ? "" : "opacity-60"}>
@@ -97,7 +97,7 @@ export function Editor({ conteudo, onEditar, somenteLeitura }: Props) {
                       onMudar={(v) => onEditar((d) => { d.criterios[ci]!.opcoes[oi]!.pontos = v; })}
                     />
                   </td>
-                  <td>
+                  <td className="!text-center">
                     <input
                       type="checkbox"
                       checked={o.requerConfirmacao}
@@ -106,7 +106,7 @@ export function Editor({ conteudo, onEditar, somenteLeitura }: Props) {
                       onChange={(e) => { const v = e.target.checked; onEditar((d) => { d.criterios[ci]!.opcoes[oi]!.requerConfirmacao = v; }); }}
                     />
                   </td>
-                  <td>
+                  <td className="!text-center">
                     <input
                       type="checkbox"
                       checked={o.desconhecida}
@@ -128,8 +128,8 @@ export function Editor({ conteudo, onEditar, somenteLeitura }: Props) {
 
       <h3>Faixas → código</h3>
       <div className="tw">
-        <table className="tabela">
-          <thead><tr><th>De</th><th>Até (vazio = sem limite)</th><th>Código</th></tr></thead>
+        <table className="tabela !w-auto">
+          <thead><tr><th>De</th><th>Até (vazio = sem limite)</th><th className="!text-center">Código</th></tr></thead>
           <tbody>
             {conteudo.faixas.map((f, i) => (
               <tr key={i}>
@@ -141,7 +141,7 @@ export function Editor({ conteudo, onEditar, somenteLeitura }: Props) {
                   <Numero valor={f.ate} vazio="sem limite" rotulo="Faixa: até" desabilitado={somenteLeitura}
                     onMudar={(v) => onEditar((d) => { d.faixas[i]!.ate = v; })} />
                 </td>
-                <td><Pill codigo={f.cod} /></td>
+                <td className="!text-center"><Pill codigo={f.cod} /></td>
               </tr>
             ))}
           </tbody>
