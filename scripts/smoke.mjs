@@ -91,6 +91,55 @@ await teste("salvar rascunho BH (200)", async () => {
 });
 await teste("rascunho com etag velho → 409", async () => { await esperaStatus(tk.chave, "PUT", "/pontuacao/rascunho?escopo=BH", 409, { conteudo: base(), etag: 999999 }); return true; });
 
+// Regras de precedência (camada A). NUNCA grava: todo PUT aqui é recusado antes de qualquer escrita
+// (403 na API, 400 na validação/corpo ou 409 no banco). Os PUTs de Administrador mandam as regras atuais SEM mudança:
+// mesmo que a trava de versão falhasse, o banco recusaria com "nenhuma alteração".
+await teste("login Administrador (perfil do banco)", async () => {
+  const { data: adms, error } = await admin.from("perfis").select("user_id").eq("perfil", "Administrador");
+  exige(!error && adms?.length, "nenhum perfil Administrador");
+  let email = null;
+  for (const a of adms) { const { data: u } = await admin.auth.admin.getUserById(a.user_id); if (u?.user?.email) { email = u.user.email; if (email.endsWith("@farol.teste")) break; } }
+  exige(email, "Administrador sem e-mail"); tk.admin = await token(email); return true; // e-mail não é impresso
+});
+let regrasAtual;
+await teste("regras: admin lê (editável)", async () => {
+  regrasAtual = (await esperaStatus(tk.admin, "GET", "/regras", 200)).json;
+  exige(regrasAtual.editavel === true, "admin sem edição"); return `v${regrasAtual.versao}, ${regrasAtual.regras.length} regra(s)`;
+});
+const corpoAtual = () => regrasAtual.regras.map((r) => ({ id: r.id, nome: r.nome, ativa: r.ativa, nivel: r.nivel, prioridadeMinima: r.prioridadeMinima, cond: r.condicoes.map((c) => ({ criterio: c.criterio, opcoes: c.opcoes })) }));
+await teste("regras: supervisor lê só leitura", async () => { const r = await esperaStatus(tk.supervisor, "GET", "/regras", 200); exige(r.json.editavel === false, "supervisor editável"); return true; });
+await teste("regras: usuário chave → 403", async () => { await esperaStatus(tk.chave, "GET", "/regras", 403); return true; });
+await teste("regras: equipe de campo → 403", async () => { await esperaStatus(tk.campo, "GET", "/regras", 403); return true; });
+await teste("regras: OS abertas carimbadas na versão em vigor", async () => {
+  const { data, error } = await admin.from("ordens_servico").select("regras_versao").not("status", "in", "(Concluída,Cancelada)");
+  exige(!error, error?.message); const fora = data.filter((o) => o.regras_versao == null || o.regras_versao < regrasAtual.versao).length;
+  exige(fora === 0, `${fora} OS sem carimbo ou em versão antiga`); return `${data.length} OS abertas em v${regrasAtual.versao}`;
+});
+await teste("regras: prever sem mudança → 0 OS mudam", async () => {
+  const r = await esperaStatus(tk.admin, "POST", "/regras/prever", 200, { regras: corpoAtual() });
+  exige(r.json.erros.length === 0, `erros: ${r.json.erros.join(" | ")}`); exige(r.json.impacto.mudaram === 0, `${r.json.impacto.mudaram} mudariam`);
+  return `${r.json.impacto.total} OS avaliadas, ${r.json.alertas.length} alerta(s)`;
+});
+await teste("regras: prever por não-Administrador → 403", async () => { await esperaStatus(tk.supervisor, "POST", "/regras/prever", 403, { regras: corpoAtual() }); return true; });
+await teste("gravar regras: não-Administrador → 403", async () => {
+  await esperaStatus(tk.supervisor, "PUT", "/regras", 403, { regras: corpoAtual(), versaoBase: regrasAtual.versao, justificativa: "smoke" }); return true;
+});
+await teste("gravar regras: versão base antiga → 409", async () => {
+  const r = await esperaStatus(tk.admin, "PUT", "/regras", 409, { regras: corpoAtual(), versaoBase: regrasAtual.versao + 1000, justificativa: "smoke (nunca grava)" });
+  return r.json.regra ?? "";
+});
+await teste("gravar regras: justificativa vazia → 400", async () => {
+  await esperaStatus(tk.admin, "PUT", "/regras", 400, { regras: corpoAtual(), versaoBase: regrasAtual.versao, justificativa: "   " }); return true;
+});
+await teste("gravar regras: conjunto vazio → 400", async () => {
+  const r = await esperaStatus(tk.admin, "PUT", "/regras", 400, { regras: [], versaoBase: regrasAtual.versao, justificativa: "smoke (nunca grava)" });
+  exige(/ao menos uma regra/i.test(r.json.erro), r.json.erro); return r.json.regra ?? "";
+});
+await teste("regras: nenhuma versão nova foi gravada", async () => {
+  const r = await esperaStatus(tk.admin, "GET", "/regras", 200);
+  exige(r.json.versao === regrasAtual.versao, `versão mudou: v${regrasAtual.versao} → v${r.json.versao}`); return `continua v${r.json.versao}`;
+});
+
 // Site
 await teste("site / responde", async () => { const r = await fetch(WEB, { redirect: "manual" }); exige(r.status < 500, `HTTP ${r.status}`); return `HTTP ${r.status}`; });
 

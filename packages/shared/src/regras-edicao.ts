@@ -78,7 +78,8 @@ export function validarRegras(
     }
   });
 
-  if (!regras.some((r) => r.ativa)) alertas.push("Nenhuma regra ativa: a prioridade passa a depender só da pontuação.");
+  if (regras.length === 0) erros.push("Mantenha ao menos uma regra.");
+  else if (!regras.some((r) => r.ativa)) alertas.push("Nenhuma regra ativa: a prioridade passa a depender só da pontuação.");
 
   for (const { escopo, versao } of outras) {
     for (const r of regras.filter((x) => x.ativa)) {

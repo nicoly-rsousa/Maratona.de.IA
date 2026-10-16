@@ -75,6 +75,12 @@ describe("validarRegras — o que bloqueia", () => {
     expect(erros([regra({ nome: "   " })]).join(" ")).toMatch(/nome/i);
   });
 
+  it("conjunto vazio é erro: mantenha ao menos uma regra (desative em vez de apagar todas)", () => {
+    const r = validarRegras([], VERSAO_DEMO);
+    expect(r.erros).toEqual(["Mantenha ao menos uma regra."]);
+    expect(r.alertas).toEqual([]);
+  });
+
   it("reúne todos os erros de uma vez (não para no primeiro)", () => {
     const e = erros([regra({ nivel: 0, prioridadeMinima: 9, cond: [] })]);
     expect(e.length).toBeGreaterThanOrEqual(3);
@@ -100,10 +106,9 @@ describe("validarRegras — alertas (não bloqueiam)", () => {
     expect(r.alertas.join(" ")).toMatch(/desabilitado/i);
   });
 
-  it("nenhuma regra ativa: tudo passa a depender só da pontuação", () => {
-    expect(alertas([])).toHaveLength(1);
+  it("nenhuma regra ativa (mas o conjunto existe): alerta, tudo passa a depender só da pontuação", () => {
     expect(alertas([regra({ ativa: false })]).join(" ")).toMatch(/nenhuma regra ativa/i);
-    expect(erros([])).toEqual([]);
+    expect(erros([regra({ ativa: false })])).toEqual([]);
   });
 
   it("critério ou opção que falta na versão própria de outra cidade vira alerta, não erro", () => {
@@ -112,6 +117,26 @@ describe("validarRegras — alertas (não bloqueiam)", () => {
     const r = validarRegras(REGRAS_DEMO, VERSAO_DEMO, [{ escopo: "CT", versao: ct }]);
     expect(r.erros).toEqual([]);
     expect(r.alertas.some((a) => a.includes("CT") && /estrutura/i.test(a))).toBe(true);
+  });
+
+  it("cidade com versão própria sem nenhuma incompatibilidade real: sem alerta nenhum sobre ela", () => {
+    // mesma versão da global: nenhum critério ou opção falta (incompatibilidade real = o que importa, não "ter versão própria")
+    const r = validarRegras(REGRAS_DEMO, VERSAO_DEMO, [{ escopo: "CT", versao: structuredClone(VERSAO_DEMO) }]);
+    expect(r.erros).toEqual([]);
+    expect(r.alertas.some((a) => a.includes("CT"))).toBe(false);
+  });
+
+  it("várias cidades, só a que tem incompatibilidade real aparece no alerta", () => {
+    const compativel: VersaoPontuacao = structuredClone(VERSAO_DEMO);
+    const incompativel: VersaoPontuacao = structuredClone(VERSAO_DEMO);
+    incompativel.criterios = incompativel.criterios.filter((c) => c.id !== "estrutura");
+    const r = validarRegras(REGRAS_DEMO, VERSAO_DEMO, [{ escopo: "CT", versao: compativel }, { escopo: "BH", versao: incompativel }]);
+    expect(r.alertas.some((a) => a.includes("CT"))).toBe(false);
+    expect(r.alertas.some((a) => a.includes("BH") && /estrutura/i.test(a))).toBe(true);
+  });
+
+  it("nenhuma cidade com versão própria: sem nenhum alerta sobre cidade", () => {
+    expect(validarRegras(REGRAS_DEMO, VERSAO_DEMO, []).alertas).toEqual([]);
   });
 });
 
