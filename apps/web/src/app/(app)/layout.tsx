@@ -19,6 +19,15 @@ function alternarTema() {
   try { localStorage.setItem("farol-tema", claro ? "l" : "d"); } catch { /* storage indisponível */ }
 }
 
+/** Telas do protótipo. `perm` = permissão do /me que libera o item; sem `href` = ainda não implementada. */
+const ITENS: { rotulo: string; href?: string; perm?: string }[] = [
+  { rotulo: "Fila", href: "/fila" },
+  { rotulo: "Nova solicitação", href: "/nova", perm: "nova" },
+  { rotulo: "Pontuação", perm: "pontuacao" },
+  { rotulo: "Precedência", perm: "regras" },
+  { rotulo: "Mapa", perm: "consultar" },
+];
+
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { session, carregando } = useAuth();
   const router = useRouter();
@@ -52,7 +61,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       <header className="flex flex-wrap items-center gap-2 border-b border-ln bg-p1 px-3 py-2">
         <b className="mr-2 text-[15px]">Farol</b>
-        {ator && <span className="mu">{ator.nome} · {ator.perfil}</span>}
+        {ator && <span className="mu">Usuário: <b className="font-semibold text-tx">{ator.nome}</b> · {ator.perfil}</span>}
         {ready && (
           <label className="mu flex items-center gap-1">
             Cidade
@@ -69,21 +78,21 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <div className="flex min-h-[calc(100vh-46px)] max-[700px]:flex-col">
         <nav aria-label="Telas" className="flex w-[150px] flex-col gap-1 border-r border-ln p-2 max-[700px]:w-auto max-[700px]:flex-row max-[700px]:flex-wrap max-[700px]:border-b max-[700px]:border-r-0">
-          <Link
-            href="/fila"
-            className="btn-nav block rounded-[3px] border px-[7px] py-1"
-            aria-current={path === "/fila" || path.startsWith("/os/")}
-          >
-            Fila
-          </Link>
-          {ator?.permissoes.includes("nova") && (
-            <Link
-              href="/nova"
-              className="btn-nav block rounded-[3px] border px-[7px] py-1"
-              aria-current={path === "/nova"}
-            >
-              Nova solicitação
-            </Link>
+          {ITENS.filter((i) => !i.perm || ator?.permissoes.includes(i.perm)).map((i) =>
+            i.href ? (
+              <Link
+                key={i.rotulo}
+                href={i.href}
+                className="btn-nav block rounded-[3px] border px-[7px] py-1"
+                aria-current={i.href === "/fila" ? path === "/fila" || path.startsWith("/os/") : path === i.href}
+              >
+                {i.rotulo}
+              </Link>
+            ) : (
+              <button key={i.rotulo} type="button" disabled className="btn-nav w-full" title="Em breve">
+                {i.rotulo} <span className="mu text-[11px]">em breve</span>
+              </button>
+            ),
           )}
         </nav>
         <main className="min-w-0 flex-1 p-3" aria-live="polite">

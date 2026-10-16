@@ -10,8 +10,13 @@ import { dataHora } from "@/lib/format";
 import { Carregando, ErroApi, Pill } from "@/components/ui";
 import { useApp } from "../../app-context";
 
-const ABAS = ["Prioridade", "Histórico", "Solicitações"] as const;
-type Aba = (typeof ABAS)[number];
+const ABAS = [
+  { nome: "Prioridade", pronta: true },
+  { nome: "Despacho", pronta: false },
+  { nome: "Status", pronta: false },
+  { nome: "Histórico", pronta: true },
+] as const;
+type Aba = (typeof ABAS)[number]["nome"];
 
 function Prioridade({ r, d, cidadeNome }: { r: ResultadoDetalhe; d: DetalheOS; cidadeNome: string }) {
   return (
@@ -123,20 +128,32 @@ export default function DetalhePage() {
             {d.os.exigeQualificacao && <> · exige <b>{d.os.exigeQualificacao}</b></>}
             {" · "}{d.solicitacoes.length} {d.solicitacoes.length === 1 ? "solicitação" : "solicitações"}
           </p>
-          <div className="tabs" role="tablist">
+          <div className="tabs" role="tablist" aria-label="Seções da OS">
             {ABAS.map((t) => (
-              <button key={t} role="tab" aria-selected={aba === t} onClick={() => setAba(t)}>{t}</button>
+              <button
+                key={t.nome}
+                role="tab"
+                id={`aba-${t.nome}`}
+                aria-selected={aba === t.nome}
+                aria-controls="painel-os"
+                disabled={!t.pronta}
+                title={t.pronta ? undefined : "Em breve"}
+                onClick={() => setAba(t.nome)}
+              >
+                {t.nome}{!t.pronta && <span className="mu text-[11px]"> em breve</span>}
+              </button>
             ))}
           </div>
-          <div className="box">
-            {aba === "Solicitações" ? (
-              <Solicitacoes s={d.solicitacoes} />
+          <div className="box" role="tabpanel" id="painel-os" aria-labelledby={`aba-${aba}`}>
+            {aba === "Histórico" ? (
+              <>
+                {d.resultado ? <Historico h={d.historico} /> : <p className="mu">Esta OS ainda não tem resultado de prioridade calculado.</p>}
+                <Solicitacoes s={d.solicitacoes} />
+              </>
             ) : !d.resultado ? (
               <p className="mu">Esta OS ainda não tem resultado de prioridade calculado.</p>
-            ) : aba === "Prioridade" ? (
-              <Prioridade r={d.resultado} d={d} cidadeNome={cidades.find((c) => c.id === d.os.cidade)?.nome ?? d.os.cidade} />
             ) : (
-              <Historico h={d.historico} />
+              <Prioridade r={d.resultado} d={d} cidadeNome={cidades.find((c) => c.id === d.os.cidade)?.nome ?? d.os.cidade} />
             )}
           </div>
         </>

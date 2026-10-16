@@ -34,10 +34,10 @@ function useAtraso<T>(valor: T, ms: number): T {
 
 function Campo({ rotulo, dica, children }: { rotulo: string; dica?: string; children: ReactNode }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="mu">{rotulo}</span>
+    <label>
+      {rotulo}
       {children}
-      {dica && <span className="mu text-[11px]">{dica}</span>}
+      {dica && <span className="max-w-[260px] text-[11px]">{dica}</span>}
     </label>
   );
 }
@@ -168,7 +168,7 @@ export default function NovaSolicitacaoPage() {
       <>
         <h2>Nova solicitação</h2>
         {criada && (
-          <div className="box" role="status">
+          <div className="okm" role="status">
             Registrada: <b className="m">{criada.os.numero}</b> — <Pill codigo={criada.resultado.codigo} /> · nível{" "}
             <b className="m">{criada.resultado.nivel}</b> · <b className="m">{criada.resultado.pontos}</b> pts · {criada.os.status}
             <p className="mu">{criada.resultado.motivoPrincipal}</p>
@@ -179,7 +179,7 @@ export default function NovaSolicitacaoPage() {
           </div>
         )}
         {vinculada && (
-          <div className="box" role="status">
+          <div className="okm" role="status">
             Solicitação vinculada à <b className="m">{vinculada.numero}</b> ({vinculada.total ?? "?"} solicitações). Nenhuma OS nova foi criada.
             {vinculada.reclassificada && <> A prioridade da OS foi recalculada.</>}
           </div>
@@ -196,7 +196,7 @@ export default function NovaSolicitacaoPage() {
     <>
       <h2>Nova solicitação</h2>
       <div className="box">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-3">
+        <div className="row">
           <Campo rotulo="Município">
             <select value={cidade} onChange={(e) => { mudar(setCidadeSel)(e.target.value); setEscolhas({}); setQualificacao(""); }}>
               {cidades.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -246,7 +246,7 @@ export default function NovaSolicitacaoPage() {
           <ErroApi erro={criterios.error} titulo="Não foi possível carregar os critérios." onRetry={() => criterios.refetch()} />
         ) : (
           <>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-3">
+            <div className="row">
               {perguntas.map((p) => (
                 <Campo key={p.id} rotulo={p.nome}>
                   <select value={valorDe(p.id)} onChange={(e) => mudar((v: string) => setEscolhas((x) => ({ ...x, [p.id]: v })))(e.target.value)}>
@@ -286,9 +286,11 @@ export default function NovaSolicitacaoPage() {
                 </tbody>
               </table>
             </div>
-            <Campo rotulo="Observação para o vínculo (opcional)">
-              <input value={observacao} maxLength={500} onChange={(e) => setObservacao(e.target.value)} />
-            </Campo>
+            <div className="row">
+              <Campo rotulo="Observação para o vínculo (opcional)">
+                <input value={observacao} maxLength={500} onChange={(e) => setObservacao(e.target.value)} />
+              </Campo>
+            </div>
           </div>
         )}
 

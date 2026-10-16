@@ -42,6 +42,11 @@
   .sk { height: 14px; background: var(--p2); margin: 6px 0; animation: pl 1.2s infinite; }
   .btn-nav { text-align: left; border-color: transparent; background: none; }
   .btn-nav[aria-current="true"] { background: var(--p2); border-left: 3px solid var(--ac); }
+  .okm { border-left: 3px solid var(--ok); background: var(--p2); padding: 6px 9px; margin: 6px 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .row label { display: flex; flex-direction: column; gap: 2px; color: var(--mu); }
+  dialog { background: var(--p1); color: var(--tx); border: 1px solid var(--ac); max-width: 420px; width: 92%; padding: 12px; }
+  dialog::backdrop { background: #0008; }
   .mu { color: var(--mu); }
   .m { font-family: ui-monospace, Menlo, Consolas, monospace; }
 }

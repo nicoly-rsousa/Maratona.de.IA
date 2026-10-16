@@ -66,7 +66,7 @@ export default function FilaPage() {
               </table>
             </div>
           ) : (
-            <div className="box">Nenhuma OS aberta nesta visão. Troque de cidade ou aguarde novas solicitações.</div>
+            <div className="box">Nenhuma OS aberta nesta visão. Registre uma solicitação em <b>Nova solicitação</b> ou troque de cidade.</div>
           )}
         </>
       )}
