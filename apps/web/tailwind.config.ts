@@ -3,6 +3,8 @@ import type { Config } from "tailwindcss";
 // Cores = variáveis do protótipo docs/farol.html (tema escuro por padrão; data-t="l" = claro).
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  // Pill monta `k${codigo}` dinamicamente: sem isto o Tailwind remove as cores das pílulas.
+  safelist: ["k0", "k1", "k2", "k3", "k4"],
   theme: {
     extend: {
       colors: {

@@ -51,7 +51,7 @@ export default function FilaPage() {
                   {lista.map((o) => (
                     <tr key={o.id} className="r">
                       <td className="m">{o.posicao}</td>
-                      <td><Link href={`/os/${o.id}`} className="m text-ac underline">{o.numero}</Link></td>
+                      <td><Link href={`/os/${o.id}`} className="m os-bt">{o.numero}</Link></td>
                       <td>{o.cidade_id}</td>
                       <td><Pill codigo={o.codigo} /></td>
                       <td className="m">{o.nivel}</td>
