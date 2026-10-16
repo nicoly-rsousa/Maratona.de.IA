@@ -64,9 +64,11 @@ Entre como `despachante@farol.teste` → OS **CR-04 A** → aba **Despacho**.
 
 ## 5. Precedência (30 s) — **Supervisor** ou **Administrador**
 
-**Precedência**: as regras da camada A, em **somente leitura**, com o aviso "edição em breve".
+**Precedência**: as regras da camada A. O Supervisor vê em **somente leitura**; o **Administrador** edita.
 
-- **Dizer:** "Estas regras garantem prioridade mínima e nível, e são do administrador, com justificativa e versão. A edição é a próxima etapa. O Usuário Chave **não** vê esta tela nem o despacho: ele configura só a pontuação."
+Como Administrador: mude o **nível** de "Estrutura com risco de queda" de 1 para 4 → **Pré-visualizar** (tabela de impacto: quantas OS abertas mudam de código ou nível, antes e depois) → **Confirmar** → justificativa → aparece a **v2** na lista de versões. Em até 1 minuto a OS com risco de queda sobe na fila, com o motivo "Regras v2: <justificativa>" no histórico.
+
+- **Dizer:** "Estas regras garantem prioridade mínima e nível. Só o administrador altera, sempre com justificativa, e cada alteração é uma versão nova: a anterior nunca é editada. Antes de confirmar, vemos o impacto nas OS abertas. O Usuário Chave e a Equipe de campo **não** veem esta tela."
 
 ## 6. Publicar uma versão de pontuação reclassificando as abertas (2 min) — **Usuário Chave**
 

@@ -182,3 +182,67 @@ describe("OS sem vínculo", () => {
     expect(plano(os({ versaoId: null }), [], T0, true)).toBeUndefined();
   });
 });
+
+describe("versão do conjunto de regras (camada A)", () => {
+  const vr = (numero: number, motivoDeRegras = true) => ({ numero, justificativa: "Subir estrutura", motivoDeRegras });
+  const plano2 = (o: OSParaCalculo, regras = REGRAS_DEMO, versaoRegras: ReturnType<typeof vr> | null = vr(2), publicadas = [g1], migrar = false) =>
+    planejarReclassificacao(o, { publicadas, regras, agoraMs: T0 + 60_000, migrar, motivo: "Reclassificação automática (tempo)", versaoRegras: versaoRegras ?? undefined })!;
+  // regra nova que alcança a OS de teste (pessoas 1–10): código e nível mudam
+  const regraNova = { id: "R-NOVA", nome: "Nova", ativa: true, nivel: 5, prioridadeMinima: 0, cond: [{ criterio: "pessoas", opcoes: ["1–10"] }] };
+
+  it("OS numa versão anterior, com resultado diferente: grava e o motivo é 'Regras vN: <justificativa>'", () => {
+    const p = plano2(os({ regrasVersao: 1 }), [...REGRAS_DEMO, regraNova]);
+    expect(p.desatualizada).toBe(true);
+    expect(p.gravar).toBe(true);
+    expect(p.motivo).toBe("Regras v2: Subir estrutura");
+    expect(p.resultado).toMatchObject({ codigo: 0, nivel: 5 });
+    expect(p.regrasVersao).toBe(2);
+  });
+
+  it("OS numa versão anterior, resultado igual: NÃO grava resultado, mas fica marcada para receber o novo carimbo", () => {
+    const p = plano2(os({ regrasVersao: 1 }));
+    expect(p.desatualizada).toBe(true);
+    expect(p.gravar).toBe(false);
+    expect(p.regrasVersao).toBe(2);
+  });
+
+  it("OS sem carimbo (nunca marcada) conta como versão anterior", () => {
+    expect(plano2(os({ regrasVersao: null })).desatualizada).toBe(true);
+    expect(plano2(os()).desatualizada).toBe(true);
+  });
+
+  it("OS já na versão em vigor não é tocada: motivo comum, sem 'Regras vN'", () => {
+    const p = plano2(os({ regrasVersao: 2 }), [...REGRAS_DEMO, regraNova]);
+    expect(p.desatualizada).toBe(false);
+    expect(p.gravar).toBe(true); // o resultado mudou por outro motivo (regras já aplicadas antes do carimbo)
+    expect(p.motivo).toBe("Reclassificação automática (tempo)");
+  });
+
+  it("fora da rotina (motivoDeRegras desligado) mantém o motivo de quem chamou, mas ainda carimba", () => {
+    const p = plano2(os({ regrasVersao: 1 }), [...REGRAS_DEMO, regraNova], vr(2, false));
+    expect(p.motivo).toBe("Reclassificação automática (tempo)");
+    expect(p.desatualizada).toBe(true);
+    expect(p.regrasVersao).toBe(2);
+  });
+
+  it("sem informar a versão das regras nada muda no comportamento anterior", () => {
+    const p = plano2(os({ regrasVersao: 1 }), REGRAS_DEMO, null);
+    expect(p.desatualizada).toBe(false);
+    expect(p.regrasVersao).toBeNull();
+    expect(p.gravar).toBe(false);
+  });
+
+  it("migração de pontuação e regras novas na mesma volta: o motivo registra as duas", () => {
+    const g2 = pub("g2", null, 2, "reclassificar", T0 - H, 20);
+    const p = plano2(os({ regrasVersao: 1 }), [...REGRAS_DEMO, regraNova], vr(2), [g1, g2], true);
+    expect(p.migrou).toBe(true);
+    expect(p.motivo).toBe("Nova versão v2; Regras v2: Subir estrutura");
+  });
+
+  it("só grava se código, pontos ou nível mudarem: regra que não alcança a OS não gera resultado", () => {
+    const naoAlcanca = { ...regraNova, cond: [{ criterio: "vida", opcoes: ["Cabo energizado / choque"] }] };
+    const p = plano2(os({ regrasVersao: 1 }), [...REGRAS_DEMO, naoAlcanca]);
+    expect(p.gravar).toBe(false);
+    expect(p.desatualizada).toBe(true);
+  });
+});

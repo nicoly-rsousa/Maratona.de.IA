@@ -1,9 +1,21 @@
 import { calcularPrioridade, fatosAutomaticos, statusInicial, validarFatos, type Fatos, type NovaOS } from "@farol/shared";
-import { regrasAtivas, versaoVigente } from "../config.js";
+import { regrasEmVigor, versaoVigente } from "../config.js";
 import { db } from "../db.js";
 
 /** Entrada inválida (vira 400 na rota). */
 export class ErroDeEntrada extends Error {}
+
+/** OS abertas (todas as colunas), lidas em páginas: o PostgREST corta em 1000 linhas por consulta. */
+export async function lerAbertas(colunas = "*"): Promise<Record<string, any>[]> { // eslint-disable-line @typescript-eslint/no-explicit-any -- linhas de ordens_servico
+  const PAGINA = 1000;
+  const todas: Record<string, any>[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+  for (let de = 0; ; de += PAGINA) {
+    const { data, error } = await db.from("ordens_servico").select(colunas).not("status", "in", "(Concluída,Cancelada)").order("id").range(de, de + PAGINA - 1);
+    if (error) throw new Error(`Erro ao ler as OS abertas: ${error.message}`);
+    todas.push(...((data ?? []) as unknown as Record<string, any>[])); // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!data || data.length < PAGINA) return todas;
+  }
+}
 
 /** Qualificações oferecidas pelas equipes ativas da cidade (valores válidos para "exige qualificação"). */
 export async function qualificacoesDaCidade(cidade: string): Promise<string[]> {
@@ -20,7 +32,7 @@ export async function qualificacoesDaCidade(cidade: string): Promise<string[]> {
  * `prazoH` é sempre "horas a partir de agora".
  */
 export async function criarOS(d: NovaOS, opts: { abertaEmMs?: number; demo?: boolean; usuario?: string } = {}) {
-  const [{ id: versaoId, versao }, regras] = await Promise.all([versaoVigente(d.cidade), regrasAtivas()]);
+  const [{ id: versaoId, versao }, { numero: regrasVersao, regras }] = await Promise.all([versaoVigente(d.cidade), regrasEmVigor()]);
   const invalidos = validarFatos(d.fatos, versao);
   if (invalidos.length) throw new ErroDeEntrada(invalidos.join(" "));
   if (d.exigeQualificacao && !(await qualificacoesDaCidade(d.cidade)).includes(d.exigeQualificacao)) {
@@ -42,7 +54,7 @@ export async function criarOS(d: NovaOS, opts: { abertaEmMs?: number; demo?: boo
     tipo: d.tipo, fatos: d.fatos,
     prazo_limite: d.prazoH == null ? null : new Date(agora + d.prazoH * 3_600_000).toISOString(),
     status: statusInicial(d.lat, d.lng), // §14.7
-    versao_pontuacao_id: versaoId, nivel: r.nivel, codigo: r.codigo, pontos: r.pontos,
+    versao_pontuacao_id: versaoId, regras_versao: regrasVersao, nivel: r.nivel, codigo: r.codigo, pontos: r.pontos,
     aberta_em: new Date(abertaEmMs).toISOString(),
   }).select().single();
   if (e2 || !os) throw new Error(e2?.message ?? "Falha ao gravar a OS.");

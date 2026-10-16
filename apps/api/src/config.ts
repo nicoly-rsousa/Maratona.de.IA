@@ -36,6 +36,24 @@ export async function regrasAtivas(): Promise<Regra[]> {
   );
 }
 
+export interface RegrasEmVigor {
+  /** número da versão do conjunto (regras_versoes) */
+  numero: number;
+  justificativa: string;
+  regras: Regra[];
+}
+
+/**
+ * Regras ativas + a versão do conjunto em vigor. A versão é lida ANTES das regras: se uma gravação cair entre as duas
+ * leituras, a OS fica carimbada com a versão antiga e a rotina a recalcula na volta seguinte (nunca o contrário).
+ */
+export async function regrasEmVigor(): Promise<RegrasEmVigor> {
+  const { data, error } = await db.from("regras_versoes").select("numero, justificativa").order("numero", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error(`Erro ao ler a versão das regras: ${error.message}`);
+  if (!data) throw new Error("Nenhuma versão das regras de precedência: aplique a migration 0006.");
+  return { numero: data.numero as number, justificativa: data.justificativa as string, regras: await regrasAtivas() };
+}
+
 export interface ConfigPontuacao {
   maxPontos: number;
   exigirAprovacao: boolean;

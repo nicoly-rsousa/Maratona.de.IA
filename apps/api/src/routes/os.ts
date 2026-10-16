@@ -5,7 +5,7 @@ import {
   type CandidataDuplicidade, type DetalheOS, type ItemFila, type LinhaResultado, type SolicitacaoResumo,
 } from "@farol/shared";
 import { auditar, exigir, veCidade } from "../auth.js";
-import { carregarPublicadas, regrasAtivas, versaoVigente } from "../config.js";
+import { carregarPublicadas, regrasEmVigor, versaoVigente } from "../config.js";
 import { db } from "../db.js";
 import { env } from "../env.js";
 import { reclassificarOS } from "../jobs/reclassificar.js";
@@ -196,7 +196,8 @@ export async function rotasOS(app: FastifyInstance) {
       }).select("id").single();
       if (e1 || !sol) return reply.code(500).send({ erro: e1?.message ?? "Falha ao gravar a solicitação." });
 
-      const reclassificada = await reclassificarOS(os, await regrasAtivas(), await carregarPublicadas(), Date.now(), "Solicitação vinculada");
+      const em = await regrasEmVigor();
+      const reclassificada = await reclassificarOS(os, em.regras, await carregarPublicadas(), Date.now(), "Solicitação vinculada", { regras: em });
       const { count } = await db.from("solicitacoes").select("id", { count: "exact", head: true }).eq("os_id", os.id);
       await auditar(req.ator, "os.vincular_solicitacao", { entidade: "os", id: os.id, cidade: os.cidade_id, detalhe: { solicitacao: sol.id } });
       return reply.code(201).send({ solicitacaoId: sol.id, numero: os.numero, total: count ?? null, reclassificada });

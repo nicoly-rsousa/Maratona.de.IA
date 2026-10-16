@@ -74,6 +74,16 @@ export interface OSParaCalculo {
   versaoId: string | null;
   /** cache atual da OS, para saber se algo mudou */
   anterior: { codigo: number; pontos: number; nivel: number };
+  /** versão do conjunto de regras (camada A) com que a OS foi calculada pela última vez; ausente/null = nenhuma */
+  regrasVersao?: number | null;
+}
+
+/** Versão do conjunto de regras com que `regras` foi carregado (regras_versoes). */
+export interface VersaoRegrasEmVigor {
+  numero: number;
+  justificativa: string;
+  /** a rotina: o motivo do cálculo vira "Regras vN: <justificativa>" quando a OS estava numa versão anterior */
+  motivoDeRegras?: boolean;
 }
 
 export interface PlanoReclassificacao {
@@ -83,6 +93,10 @@ export interface PlanoReclassificacao {
   /** só grava resultado novo se o vínculo mudou ou código, pontos ou precedência mudaram (§7) */
   gravar: boolean;
   motivo: string;
+  /** a OS estava numa versão anterior das regras (ou sem carimbo): o carimbo avança mesmo que não haja resultado novo */
+  desatualizada: boolean;
+  /** versão das regras a carimbar na OS; null quando o chamador não informou a versão */
+  regrasVersao: number | null;
 }
 
 /**
@@ -91,7 +105,7 @@ export interface PlanoReclassificacao {
  */
 export function planejarReclassificacao(
   os: OSParaCalculo,
-  ctx: { publicadas: VersaoPublicada[]; regras: Regra[]; agoraMs: number; migrar: boolean; motivo: string },
+  ctx: { publicadas: VersaoPublicada[]; regras: Regra[]; agoraMs: number; migrar: boolean; motivo: string; versaoRegras?: VersaoRegrasEmVigor },
 ): PlanoReclassificacao | undefined {
   const escolha = escolherVersaoDaOS({ cidade: os.cidade, versaoId: os.versaoId }, ctx.publicadas, ctx.agoraMs, ctx.migrar);
   if (!escolha) return undefined;
@@ -100,6 +114,15 @@ export function planejarReclassificacao(
   const fatos: Fatos = { ...os.fatos, tipo: os.tipo, ...fatosAutomaticos({ aberturaMs: os.abertaEmMs, prazoH }, ctx.agoraMs) };
   const resultado = calcularPrioridade(fatos, escolha.versao.versao, ctx.regras);
   const alterou = mudou(os.anterior, resultado);
-  const motivo = !escolha.migrou ? ctx.motivo : os.versaoId ? `Nova versão v${escolha.versao.numero}` : `Vínculo à versão v${escolha.versao.numero}`;
-  return { versao: escolha.versao, migrou: escolha.migrou, resultado, gravar: escolha.migrou || alterou, motivo };
+
+  // Regras novas (§4): OS numa versão anterior do conjunto é recalculada e recarimbada; só há resultado novo se algo mudou.
+  const vr = ctx.versaoRegras;
+  const desatualizada = !!vr && (os.regrasVersao ?? 0) < vr.numero;
+  const motivoRegras = desatualizada && vr!.motivoDeRegras ? `Regras v${vr!.numero}: ${vr!.justificativa}` : null;
+  const motivoPontuacao = os.versaoId ? `Nova versão v${escolha.versao.numero}` : `Vínculo à versão v${escolha.versao.numero}`;
+  const motivo = !escolha.migrou ? (motivoRegras ?? ctx.motivo) : motivoRegras ? `${motivoPontuacao}; ${motivoRegras}` : motivoPontuacao;
+  return {
+    versao: escolha.versao, migrou: escolha.migrou, resultado, gravar: escolha.migrou || alterou, motivo,
+    desatualizada, regrasVersao: vr?.numero ?? null,
+  };
 }
