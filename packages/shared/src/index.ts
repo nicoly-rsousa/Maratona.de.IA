@@ -5,3 +5,5 @@ export * from "./validate";
 export * from "./demo";
 export * from "./status";
 export * from "./detalhe";
+export * from "./solicitacao";
+export * from "./duplicidade";

@@ -1,23 +1,24 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  calcularPrioridade, fatosAutomaticos, montarHistorico, ordenarFila,
-  type DetalheOS, type Fatos, type ItemFila, type LinhaResultado,
+  NovaOSSchema, TIPOS_MANUTENCAO, montarHistorico, ordenarFila, perguntasDaVersao, sugerirDuplicidade,
+  type CandidataDuplicidade, type DetalheOS, type ItemFila, type LinhaResultado,
 } from "@farol/shared";
 import { auditar, exigir, veCidade } from "../auth.js";
-import { versaoVigente, regrasAtivas } from "../config.js";
+import { versaoVigente } from "../config.js";
 import { db } from "../db.js";
+import { env } from "../env.js";
+import { ErroDeEntrada, criarOS } from "../services/os.js";
 
-const NovaOS = z.object({
-  cidade: z.string().min(2),
-  endereco: z.string().min(3),
-  lat: z.number().min(-90).max(90).optional(),
-  lng: z.number().min(-180).max(180).optional(),
-  transformador: z.string().regex(/^\d{4,12}$/, "Transformador: 4 a 12 dígitos (texto)").optional(),
-  uc: z.string().regex(/^\d{6,10}$/).optional(),
-  tipo: z.enum(["Corretiva", "Preventiva"]).default("Corretiva"),
-  prazoH: z.number().nullable().default(null),
-  fatos: z.record(z.union([z.string(), z.array(z.string())])).default({}),
+/** Texto único para o front (o corpo `erro` é sempre string). */
+const mensagens = (e: z.ZodError) => e.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ` : "") + i.message).join(" ");
+
+// Query string: "" vira ausente; números chegam como texto.
+const txt = z.string().trim().transform((s) => (s === "" ? undefined : s)).optional();
+const num = z.string().trim().transform((s) => (s === "" ? undefined : Number(s))).pipe(z.number().finite().optional()).optional();
+const ConsultaDup = z.object({
+  cidade: z.string().min(2), endereco: txt, lat: num, lng: num, transformador: txt, uc: txt, conjunto: txt,
+  tipo: z.enum(TIPOS_MANUTENCAO).optional(),
 });
 
 export async function rotasOS(app: FastifyInstance) {
@@ -87,37 +88,58 @@ export async function rotasOS(app: FastifyInstance) {
     return detalhe;
   });
 
-  // Nova OS: calcula prioridade e grava OS + resultado imutável.
+  // Apoio à tela "Nova solicitação": perguntas da versão de pontuação PUBLICADA e vigente na cidade (§5, §11).
+  app.get("/os/criterios", async (req, reply) => {
+    const { cidade } = (req.query ?? {}) as { cidade?: string };
+    if (!cidade || cidade === "*") return reply.code(400).send({ erro: "Informe a cidade da solicitação." });
+    if (!(await exigir(req, reply, "nova", cidade))) return;
+    try {
+      const { versao } = await versaoVigente(cidade);
+      return { versao: versao.v, tipos: TIPOS_MANUTENCAO, perguntas: perguntasDaVersao(versao) };
+    } catch (e) {
+      return reply.code(503).send({ erro: (e as Error).message });
+    }
+  });
+
+  // Sugestão de duplicidade (§11): nunca automática, sempre dentro da cidade informada e do escopo do usuário.
+  app.get("/os/duplicidade", async (req, reply) => {
+    const q = ConsultaDup.safeParse(req.query);
+    if (!q.success) return reply.code(400).send({ erro: mensagens(q.error) });
+    const c = q.data;
+    if (!(await exigir(req, reply, "nova", c.cidade))) return;
+
+    const desde = new Date(Date.now() - env.DUP_JANELA_H * 3_600_000).toISOString();
+    const { data, error } = await db
+      .from("ordens_servico")
+      .select("id, numero, cidade_id, endereco, status, codigo, tipo, lat, lng, transformador, uc, conjunto, aberta_em")
+      .eq("cidade_id", c.cidade)
+      .not("status", "in", "(Concluída,Cancelada)")
+      .gte("aberta_em", desde)
+      .limit(1000);
+    if (error) return reply.code(500).send({ erro: error.message });
+
+    const candidatas: CandidataDuplicidade[] = (data ?? []).map((o) => ({
+      id: o.id, numero: o.numero, cidade: o.cidade_id, endereco: o.endereco, status: o.status, codigo: o.codigo, tipo: o.tipo,
+      lat: o.lat, lng: o.lng, transformador: o.transformador, uc: o.uc, conjunto: o.conjunto, abertaEmMs: Date.parse(o.aberta_em),
+    }));
+    return sugerirDuplicidade({ ...c }, candidatas, Date.now(), { raioM: env.DUP_RAIO_M, janelaH: env.DUP_JANELA_H });
+  });
+
+  // Nova OS: calcula prioridade e grava OS + resultado imutável (mesmo caminho do seed:os).
   app.post("/os", async (req, reply) => {
-    const body = NovaOS.safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ erro: body.error.flatten() });
+    const body = NovaOSSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ erro: mensagens(body.error) });
     const d = body.data;
     if (!(await exigir(req, reply, "nova", d.cidade))) return;
 
-    const [{ id: versaoId, versao }, regras] = await Promise.all([versaoVigente(d.cidade), regrasAtivas()]);
-    const agora = Date.now();
-    const fatos: Fatos = { ...d.fatos, tipo: d.tipo, ...fatosAutomaticos({ aberturaMs: agora, prazoH: d.prazoH }, agora) };
-    const r = calcularPrioridade(fatos, versao, regras);
-
-    const { data: num, error: e1 } = await db.rpc("proximo_numero_os", { p_cidade: d.cidade });
-    if (e1) return reply.code(500).send({ erro: e1.message });
-
-    const semLocal = d.lat == null || d.lng == null;
-    const { data: os, error: e2 } = await db.from("ordens_servico").insert({
-      numero: num, cidade_id: d.cidade, endereco: d.endereco, lat: d.lat, lng: d.lng,
-      transformador: d.transformador, uc: d.uc, tipo: d.tipo, fatos: d.fatos,
-      prazo_limite: d.prazoH == null ? null : new Date(agora + d.prazoH * 3_600_000).toISOString(),
-      status: semLocal ? "Em triagem" : "Aguardando despacho", // §14.7
-      versao_pontuacao_id: versaoId, nivel: r.nivel, codigo: r.codigo, pontos: r.pontos,
-    }).select().single();
-    if (e2 || !os) return reply.code(500).send({ erro: e2?.message });
-
-    await db.from("resultados_prioridade").insert({
-      os_id: os.id, versao: r.versao, itens: r.itens, pontos: r.pontos, codigo_faixa: r.codigoFaixa,
-      regras_aplicadas: r.regrasAplicadas, nivel: r.nivel, codigo: r.codigo,
-      motivo_principal: r.motivoPrincipal, motivo_calculo: "Abertura",
-    });
-    await auditar(req.ator, "os.criar", { entidade: "os", id: os.id, cidade: d.cidade });
-    return reply.code(201).send({ os, resultado: r });
+    try {
+      const { os, resultado } = await criarOS(d);
+      await auditar(req.ator, "os.criar", { entidade: "os", id: os.id, cidade: d.cidade });
+      return reply.code(201).send({ os, resultado });
+    } catch (e) {
+      if (e instanceof ErroDeEntrada) return reply.code(400).send({ erro: e.message });
+      req.log.error(e);
+      return reply.code(500).send({ erro: (e as Error).message });
+    }
   });
 }

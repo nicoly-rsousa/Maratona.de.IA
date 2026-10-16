@@ -1,10 +1,12 @@
+import { pathToFileURL } from "node:url";
 import { calcularPrioridade, fatosAutomaticos, mudou, type Fatos } from "@farol/shared";
 import { db } from "../db.js";
 import { regrasAtivas, versaoVigente } from "../config.js";
 
 /** Recalcula fatos dependentes do tempo; só grava se código, pontos ou precedência mudarem. */
 export async function reclassificarAbertas(): Promise<number> {
-  const { data: abertas } = await db.from("ordens_servico").select("*").not("status", "in", "(Concluída,Cancelada)");
+  const { data: abertas, error } = await db.from("ordens_servico").select("*").not("status", "in", "(Concluída,Cancelada)");
+  if (error) throw new Error(`Erro ao ler as OS abertas: ${error.message}`);
   if (!abertas?.length) return 0;
   const regras = await regrasAtivas();
   const agora = Date.now();
@@ -30,6 +32,9 @@ export async function reclassificarAbertas(): Promise<number> {
 }
 
 // Execução direta como Cron Job do Render
-if (import.meta.url === `file://${process.argv[1]}`) {
-  reclassificarAbertas().then((n) => { console.log(`Reclassificadas: ${n}`); process.exit(0); });
+// (pathToFileURL: `file://${argv[1]}` não casa no Windows nem sob tsx)
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  reclassificarAbertas()
+    .then((n) => { console.log(`Reclassificadas: ${n}`); process.exit(0); })
+    .catch((e) => { console.error(e); process.exit(1); });
 }

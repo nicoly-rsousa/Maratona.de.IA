@@ -4,11 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsup",
     "start": "node dist/server.js",
-    "job:reclassificar": "node dist/jobs/reclassificar.js",
-    "seed": "node dist/seed.js",
+    "job:reclassificar": "tsx --env-file=.env src/jobs/reclassificar.ts",
+    "job:reclassificar:prod": "node dist/jobs/reclassificar.js",
+    "seed": "tsx --env-file=.env src/seed.ts",
+    "seed:os": "tsx --env-file=.env src/seed-os.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {

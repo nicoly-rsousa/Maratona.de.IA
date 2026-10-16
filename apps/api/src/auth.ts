@@ -28,7 +28,8 @@ declare module "fastify" {
   interface FastifyRequest { ator?: Ator }
 }
 
-export const pode = (a: Ator, p: Permissao) => BASE[a.perfil].includes(p);
+export const permissoesDe = (p: Perfil): Permissao[] => [...BASE[p]];
+export const pode =(a: Ator, p: Permissao) => BASE[a.perfil].includes(p);
 export const veCidade = (a: Ator, cidade: string) => a.todasCidades || a.perfil === "Administrador" || a.cidades.includes(cidade);
 
 export async function autenticar(req: FastifyRequest, reply: FastifyReply) {
