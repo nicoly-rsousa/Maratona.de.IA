@@ -7,3 +7,4 @@ export * from "./status";
 export * from "./detalhe";
 export * from "./solicitacao";
 export * from "./duplicidade";
+export * from "./despacho";

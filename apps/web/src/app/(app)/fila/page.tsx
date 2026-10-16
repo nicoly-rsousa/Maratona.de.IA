@@ -9,7 +9,7 @@ import { Carregando, ErroApi, Pill } from "@/components/ui";
 import { useApp } from "../app-context";
 
 export default function FilaPage() {
-  const { cidades, cidade } = useApp();
+  const { ator, cidades, cidade } = useApp();
   const nome = cidade === "*" ? "todas as cidades" : (cidades.find((c) => c.id === cidade)?.nome ?? cidade);
 
   const fila = useQuery({
@@ -36,6 +36,7 @@ export default function FilaPage() {
         <>
           <p className="mu">
             Ordem: precedência, código, corretiva antes de preventiva, pontos, prazo, abertura, nº da OS. Posição calculada dentro da cidade da OS.
+            {ator.perfil === "Equipe de campo" && <> Você vê só as OS da sua equipe ({ator.equipeId ?? "sem equipe"}).</>}
           </p>
           {lista.length ? (
             <div className="tw">

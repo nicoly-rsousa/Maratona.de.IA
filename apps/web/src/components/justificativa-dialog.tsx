@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 interface Props {
   aberto: boolean;
@@ -13,6 +13,7 @@ interface Props {
 
 /** Diálogo de justificativa obrigatória (equivale ao <dialog id="dlg"> do protótipo). */
 export function JustificativaDialog({ aberto, titulo, onConfirmar, onCancelar }: Props) {
+  const tid = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
   const [texto, setTexto] = useState("");
@@ -39,9 +40,9 @@ export function JustificativaDialog({ aberto, titulo, onConfirmar, onCancelar }:
   }
 
   return (
-    <dialog ref={ref} aria-labelledby="dlg-titulo" onCancel={(e) => { e.preventDefault(); onCancelar(); }}>
+    <dialog ref={ref} aria-labelledby={tid} onCancel={(e) => { e.preventDefault(); onCancelar(); }}>
       <form onSubmit={confirmar}>
-        <p id="dlg-titulo">{titulo}</p>
+        <p id={tid}>{titulo}</p>
         <textarea
           ref={campo}
           rows={3}

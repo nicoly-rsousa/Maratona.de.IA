@@ -22,6 +22,8 @@ export interface Ator {
   perfil: Perfil;
   todasCidades: boolean;
   cidades: string[];
+  /** só o perfil Equipe de campo: a equipe cujas OS ele vê e atende */
+  equipeId: string | null;
 }
 
 declare module "fastify" {
@@ -39,7 +41,7 @@ export async function autenticar(req: FastifyRequest, reply: FastifyReply) {
   const { data: u, error } = await db.auth.getUser(token);
   if (error || !u.user) return reply.code(401).send({ erro: "Sessão inválida" });
 
-  const { data: p } = await db.from("perfis").select("nome, perfil, todas_cidades").eq("user_id", u.user.id).single();
+  const { data: p } = await db.from("perfis").select("nome, perfil, todas_cidades, equipe_id").eq("user_id", u.user.id).single();
   if (!p) return reply.code(403).send({ erro: "Usuário sem perfil" });
   const { data: cs } = await db.from("usuario_cidades").select("cidade_id").eq("user_id", u.user.id);
 
@@ -47,6 +49,7 @@ export async function autenticar(req: FastifyRequest, reply: FastifyReply) {
     id: u.user.id, nome: p.nome, perfil: p.perfil as Perfil,
     todasCidades: p.todas_cidades || p.perfil === "Administrador",
     cidades: (cs ?? []).map((c) => c.cidade_id as string),
+    equipeId: (p.equipe_id as string | null) ?? null,
   };
 }
 

@@ -39,3 +39,15 @@ export function ErroApi({ erro, titulo, onRetry }: { erro: unknown; titulo: stri
     </div>
   );
 }
+
+/** Falha de uma ação (POST): mostra o código HTTP e a mensagem específica da regra (400/403/404/409). */
+export function ErroAcao({ erro }: { erro: unknown }) {
+  const status = erro instanceof ApiError ? erro.status : 0;
+  const msg = erro instanceof Error ? erro.message : "Erro desconhecido.";
+  return (
+    <div className="err" role="alert">
+      {status > 0 && <b>{status} — </b>}
+      {msg}
+    </div>
+  );
+}

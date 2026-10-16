@@ -1,5 +1,6 @@
 import type { ItemCalculo } from "./types";
 import type { SolicitacaoResumo } from "./solicitacao";
+import type { DespachoResumo, EventoOS } from "./despacho";
 
 /** Linha de `resultados_prioridade` como vem do banco (snake_case). */
 export interface LinhaResultado {
@@ -77,6 +78,12 @@ export interface DetalheOS {
   historico: ResultadoDetalhe[];
   /** Solicitações recebidas para esta OS (abertura + vinculadas), da mais antiga à mais recente. */
   solicitacoes: SolicitacaoResumo[];
+  /** Despacho ativo (designada, a caminho ou em execução); null se não há equipe. */
+  despacho: DespachoResumo | null;
+  /** Todos os despachos da OS, do mais recente ao mais antigo (inclui removidos e concluídos). */
+  despachos: DespachoResumo[];
+  /** Trilha imutável de ações (status, despacho), do mais recente ao mais antigo. */
+  eventos: EventoOS[];
 }
 
 /** Ordena do mais recente ao mais antigo (empate: maior id) e separa o atual. */

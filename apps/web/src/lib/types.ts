@@ -10,6 +10,8 @@ export interface Ator {
   perfil: Perfil;
   todasCidades: boolean;
   cidades: string[];
+  /** só a Equipe de campo: a equipe cujas OS ela vê */
+  equipeId: string | null;
   /** permissões do perfil (nova, consultar, status, …); a API continua sendo quem decide */
   permissoes: string[];
 }

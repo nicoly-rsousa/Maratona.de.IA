@@ -9,6 +9,7 @@ import { regrasAtivas, versaoVigente } from "../config.js";
 import { db } from "../db.js";
 import { env } from "../env.js";
 import { reclassificarOS } from "../jobs/reclassificar.js";
+import { despachosDaOS, ehAtivo, eventosDaOS, osDaEquipe } from "../services/despacho.js";
 import { ErroDeEntrada, criarOS, qualificacoesDaCidade } from "../services/os.js";
 
 /** Texto único para o front (o corpo `erro` é sempre string). */
@@ -44,7 +45,13 @@ export async function rotasOS(app: FastifyInstance) {
       prazoMs: o.prazo_limite ? Date.parse(o.prazo_limite) : null, aberturaMs: Date.parse(o.aberta_em),
     }));
     const posicoes = new Map(ordenarFila(itens).map((i) => [i.num, i]));
-    return (data ?? [])
+    // Equipe de campo vê só as OS da própria equipe; a posição continua sendo a da fila inteira da cidade.
+    let visiveis = data ?? [];
+    if (a.perfil === "Equipe de campo") {
+      const minhas = new Set(a.equipeId ? await osDaEquipe(a.equipeId) : []);
+      visiveis = visiveis.filter((o) => minhas.has(o.id));
+    }
+    return visiveis
       .map((o) => ({ ...o, posicao: posicoes.get(o.numero)!.posicao }))
       .sort((x, y) => x.cidade_id.localeCompare(y.cidade_id) || x.posicao - y.posicao);
   });
@@ -64,6 +71,11 @@ export async function rotasOS(app: FastifyInstance) {
       return reply.code(403).send({ erro: "Fora do escopo" });
     }
 
+    if (a.perfil === "Equipe de campo" && !(a.equipeId && (await osDaEquipe(a.equipeId)).includes(id))) {
+      await auditar(a, "negado:os.detalhe", { entidade: "os", id, cidade: os.cidade_id, detalhe: { motivo: "OS de outra equipe" }, resultado: "negado" });
+      return reply.code(403).send({ erro: "Esta OS não é da sua equipe" });
+    }
+
     const [{ data: linhas, error: e2 }, { data: regras }, { data: abertas }, { data: sols, error: e3 }] = await Promise.all([
       db.from("resultados_prioridade").select("*").eq("os_id", id),
       db.from("regras_precedencia").select("id, nome"),
@@ -71,6 +83,7 @@ export async function rotasOS(app: FastifyInstance) {
       db.from("solicitacoes").select("id, origem, criado_em, endereco, observacao").eq("os_id", id).order("criado_em", { ascending: true }),
     ]);
     if (e2 || e3) return reply.code(500).send({ erro: (e2 ?? e3)!.message });
+    const [despachos, eventos] = await Promise.all([despachosDaOS(id), eventosDaOS(id)]);
     const solicitacoes: SolicitacaoResumo[] = (sols ?? []).map((x) => ({
       id: x.id, origem: x.origem, criadoEm: x.criado_em, endereco: x.endereco, observacao: x.observacao,
     }));
@@ -90,6 +103,7 @@ export async function rotasOS(app: FastifyInstance) {
       },
       ...montarHistorico((linhas ?? []) as LinhaResultado[], nomes),
       solicitacoes,
+      despachos, despacho: despachos.find((d) => ehAtivo(d.estado)) ?? null, eventos,
     };
     return detalhe;
   });

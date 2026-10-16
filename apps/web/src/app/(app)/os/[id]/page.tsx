@@ -9,14 +9,63 @@ import { api } from "@/lib/api";
 import { dataHora } from "@/lib/format";
 import { Carregando, ErroApi, Pill } from "@/components/ui";
 import { useApp } from "../../app-context";
+import { DespachoAba } from "./despacho-aba";
+import { StatusAba } from "./status-aba";
 
-const ABAS = [
-  { nome: "Prioridade", pronta: true },
-  { nome: "Despacho", pronta: false },
-  { nome: "Status", pronta: false },
-  { nome: "Histórico", pronta: true },
-] as const;
-type Aba = (typeof ABAS)[number]["nome"];
+const ABAS = ["Prioridade", "Despacho", "Status", "Histórico"] as const;
+type Aba = (typeof ABAS)[number];
+
+const ESTADO: Record<string, string> = {
+  designada: "Designada", a_caminho: "A caminho", em_execucao: "Em execução", concluida: "Concluída", removida: "Removida",
+};
+const TIPO_EVENTO: Record<string, string> = {
+  status: "Status", designacao: "Designação", aceite: "Aceite", inicio: "Início", conclusao: "Conclusão", remocao: "Remoção de equipe",
+};
+
+function Eventos({ d }: { d: DetalheOS }) {
+  return (
+    <>
+      <h3>Despachos (o registro anterior é preservado)</h3>
+      {d.despachos.length === 0 ? (
+        <p className="mu">Nenhum despacho.</p>
+      ) : (
+        <div className="tw">
+          <table className="tabela">
+            <thead>
+              <tr><th>Equipe</th><th>Estado</th><th>Designada</th><th>A caminho</th><th>Em execução</th><th>Concluída</th><th>Removida</th><th>Motivo da remoção</th></tr>
+            </thead>
+            <tbody>
+              {d.despachos.map((x) => (
+                <tr key={x.id}>
+                  <td><b>{x.equipe}</b>{x.apoioIntermunicipal && <span className="mu"> (apoio)</span>}</td>
+                  <td>{ESTADO[x.estado] ?? x.estado}</td>
+                  {[x.designadaEm, x.aCaminhoEm, x.emExecucaoEm, x.concluidaEm, x.removidaEm].map((t, k) => (
+                    <td key={k} className="m">{t ? dataHora(t) : "—"}</td>
+                  ))}
+                  <td>{x.removidaMotivo ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <h3>Eventos</h3>
+      {d.eventos.length === 0 ? (
+        <p className="mu">Nenhum evento registrado.</p>
+      ) : (
+        d.eventos.map((e) => (
+          <div key={e.id} className="mu m">
+            {dataHora(e.em)} — {TIPO_EVENTO[e.tipo] ?? e.tipo}
+            {e.equipe && <> {e.equipe}</>}
+            {(e.de || e.para) && <>: {e.de ?? "—"} → {e.para ?? "—"}</>}
+            {e.motivo && <>. Justificativa: {e.motivo}</>}
+            {e.usuario && <> · por {e.usuario}</>}
+          </div>
+        ))
+      )}
+    </>
+  );
+}
 
 function Prioridade({ r, d, cidadeNome }: { r: ResultadoDetalhe; d: DetalheOS; cidadeNome: string }) {
   return (
@@ -103,7 +152,7 @@ function Historico({ h }: { h: ResultadoDetalhe[] }) {
 
 export default function DetalhePage() {
   const { id } = useParams<{ id: string }>();
-  const { cidades } = useApp();
+  const { ator, cidades } = useApp();
   const [aba, setAba] = useState<Aba>("Prioridade");
 
   const q = useQuery({ queryKey: ["os", id], queryFn: () => api<DetalheOS>(`/os/${encodeURIComponent(id)}`), refetchInterval: 60_000 });
@@ -130,24 +179,20 @@ export default function DetalhePage() {
           </p>
           <div className="tabs" role="tablist" aria-label="Seções da OS">
             {ABAS.map((t) => (
-              <button
-                key={t.nome}
-                role="tab"
-                id={`aba-${t.nome}`}
-                aria-selected={aba === t.nome}
-                aria-controls="painel-os"
-                disabled={!t.pronta}
-                title={t.pronta ? undefined : "Em breve"}
-                onClick={() => setAba(t.nome)}
-              >
-                {t.nome}{!t.pronta && <span className="mu text-[11px]"> em breve</span>}
+              <button key={t} role="tab" id={`aba-${t}`} aria-selected={aba === t} aria-controls="painel-os" onClick={() => setAba(t)}>
+                {t}
               </button>
             ))}
           </div>
           <div className="box" role="tabpanel" id="painel-os" aria-labelledby={`aba-${aba}`}>
-            {aba === "Histórico" ? (
+            {aba === "Despacho" ? (
+              <DespachoAba d={d} ator={ator} />
+            ) : aba === "Status" ? (
+              <StatusAba d={d} ator={ator} />
+            ) : aba === "Histórico" ? (
               <>
                 {d.resultado ? <Historico h={d.historico} /> : <p className="mu">Esta OS ainda não tem resultado de prioridade calculado.</p>}
+                <Eventos d={d} />
                 <Solicitacoes s={d.solicitacoes} />
               </>
             ) : !d.resultado ? (
