@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Farol — fila e despacho",
+  title: "Farol - fila e despacho",
   description: "Priorização de ordens de serviço de manutenção da rede elétrica",
 };
 
