@@ -69,6 +69,57 @@ await teste("equipe de campo vê só as próprias OS", async () => {
 });
 await teste("supervisor fila * (todas as cidades) 200", async () => { await esperaStatus(tk.supervisor, "GET", "/os/fila?cidade=*", 200); return true; });
 
+// LGPD da OS (§12): Usuário Chave só configura pontuação, não precisa de endereço/UC/transformador completos (P-02/P-03).
+const osId = fila[0]?.id;
+await teste("fila BH (chave): endereço restrito, demais perfis veem o endereço", async () => {
+  exige(fila.every((o) => typeof o.endereco === "string"), "despachante/atendente deveriam ver o endereço na fila");
+  const r = await esperaStatus(tk.chave, "GET", "/os/fila?cidade=BH", 200);
+  exige(r.json.every((o) => o.endereco === null), "chave recebeu endereço na fila"); return true;
+});
+let auditoriasAntes = 0;
+await teste("detalhe OS (despachante): UC e endereço completos", async () => {
+  exige(osId, "sem OS na fila para testar o detalhe");
+  const { count } = await admin.from("auditoria").select("id", { count: "exact", head: true }).eq("entidade_id", osId).eq("acao", "os.detalhe");
+  auditoriasAntes = count ?? 0;
+  const r = await esperaStatus(tk.despachante, "GET", `/os/${osId}`, 200);
+  exige(typeof r.json.os.endereco === "string" && r.json.os.endereco !== "Endereço restrito a este perfil", "despachante sem endereço completo");
+  exige(!r.json.os.uc || !r.json.os.uc.includes("•"), "despachante recebeu UC mascarada"); return true;
+});
+await teste("detalhe OS (despachante): sucesso é auditado", async () => {
+  const { count, error } = await admin.from("auditoria").select("id", { count: "exact", head: true }).eq("entidade_id", osId).eq("acao", "os.detalhe");
+  exige(!error, error?.message); exige((count ?? 0) > auditoriasAntes, `auditoria não cresceu (${auditoriasAntes} → ${count})`); return true;
+});
+await teste("detalhe OS (chave): UC mascarada, endereço e transformador restritos", async () => {
+  const r = await esperaStatus(tk.chave, "GET", `/os/${osId}`, 200);
+  exige(r.json.os.endereco === "Endereço restrito a este perfil", `endereço vazou: ${r.json.os.endereco}`);
+  exige(r.json.os.transformador === null, "transformador vazou para a chave");
+  exige(!r.json.os.uc || r.json.os.uc.includes("•"), `UC não mascarada: ${r.json.os.uc}`); return true;
+});
+
+// Regra de UC por perfil (ucParaPerfil, apps/api/src/routes/os.ts): completa só para Despachante,
+// Supervisor e Administrador; mascarada para Atendente, Equipe de campo e Usuário Chave. Os dois
+// testes acima (despachante/chave) já cobrem 2 dos 6 perfis; os de baixo cobrem os outros 4 em /os/:id
+// (Administrador entra mais abaixo, depois do login dele) e os de /os/duplicidade.
+await teste("detalhe OS (atendente): UC mascarada", async () => {
+  const r = await esperaStatus(tk.atendente, "GET", `/os/${osId}`, 200);
+  exige(!r.json.os.uc || r.json.os.uc.includes("•"), `atendente recebeu UC completa: ${r.json.os.uc}`); return true;
+});
+await teste("detalhe OS (supervisor): UC completa", async () => {
+  const r = await esperaStatus(tk.supervisor, "GET", `/os/${osId}`, 200);
+  exige(!r.json.os.uc || !r.json.os.uc.includes("•"), "supervisor recebeu UC mascarada"); return true;
+});
+let osIdCampo = null;
+await teste("fila BH (campo): captura uma OS da própria equipe p/ testar a UC", async () => {
+  const r = await esperaStatus(tk.campo, "GET", "/os/fila?cidade=BH", 200);
+  osIdCampo = r.json[0]?.id ?? null;
+  return osIdCampo ? "OS da equipe encontrada" : "equipe de campo sem OS atribuída nesta fila; teste de UC será pulado";
+});
+await teste("detalhe OS (campo): UC mascarada", async () => {
+  if (!osIdCampo) return "sem OS da própria equipe; pulado";
+  const r = await esperaStatus(tk.campo, "GET", `/os/${osIdCampo}`, 200);
+  exige(!r.json.os.uc || r.json.os.uc.includes("•"), `equipe de campo recebeu UC completa: ${r.json.os.uc}`); return true;
+});
+
 // Pontuação (sem publicar)
 await teste("pontuação BH: despachante → 403", async () => { await esperaStatus(tk.despachante, "GET", "/pontuacao/versoes?escopo=BH", 403); return true; });
 await teste("pontuação global: usuário chave → 403", async () => { await esperaStatus(tk.chave, "GET", "/pontuacao/versoes?escopo=global", 403); return true; });
@@ -109,6 +160,43 @@ await teste("login Administrador (perfil do banco)", async () => {
   for (const a of adms) { const { data: u } = await admin.auth.admin.getUserById(a.user_id); if (u?.user?.email) { email = u.user.email; if (email.endsWith("@farol.teste")) break; } }
   exige(email, "Administrador sem e-mail"); tk.admin = await token(email); return true; // e-mail não é impresso
 });
+await teste("detalhe OS (admin): UC completa", async () => {
+  const r = await esperaStatus(tk.admin, "GET", `/os/${osId}`, 200);
+  exige(!r.json.os.uc || !r.json.os.uc.includes("•"), "administrador recebeu UC mascarada"); return true;
+});
+
+// /os/duplicidade exige a permissão "nova" (só Administrador e Atendente a têm hoje — Despachante,
+// Supervisor, Equipe de campo e Usuário Chave levam 403 antes de qualquer lógica de UC rodar).
+// Por isso só dá pra provar a máscara de UC nesta rota com atendente (mascarada) e admin (completa).
+let osComUC = null;
+await teste("busca uma OS aberta com UC em BH p/ testar duplicidade", async () => {
+  const { data, error } = await admin.from("ordens_servico").select("id, uc")
+    .eq("cidade_id", "BH").not("status", "in", "(Concluída,Cancelada)").not("uc", "is", null).limit(1);
+  exige(!error, error?.message);
+  osComUC = data?.[0] ?? null;
+  return osComUC ? "OS com UC encontrada" : "nenhuma OS aberta em BH com UC; testes de UC em duplicidade serão pulados";
+});
+await teste("duplicidade BH (atendente): mesma UC mascarada", async () => {
+  if (!osComUC) return "sem OS com UC; pulado";
+  const r = await esperaStatus(tk.atendente, "GET", `/os/duplicidade?cidade=BH&uc=${encodeURIComponent(osComUC.uc)}`, 200);
+  const achada = r.json.find((s) => s.id === osComUC.id);
+  exige(achada && achada.motivos.includes("mesma_uc"), "não achou a OS esperada por mesma_uc");
+  exige(achada.uc !== osComUC.uc && (achada.uc === null || achada.uc.includes("•")), `UC não mascarada para atendente: ${achada.uc}`);
+  return true;
+});
+await teste("duplicidade BH (admin): mesma UC completa", async () => {
+  if (!osComUC) return "sem OS com UC; pulado";
+  const r = await esperaStatus(tk.admin, "GET", `/os/duplicidade?cidade=BH&uc=${encodeURIComponent(osComUC.uc)}`, 200);
+  const achada = r.json.find((s) => s.id === osComUC.id);
+  exige(achada && achada.motivos.includes("mesma_uc"), "não achou a OS esperada por mesma_uc");
+  exige(achada.uc === osComUC.uc, `UC mascarada para administrador: ${achada.uc}`);
+  return true;
+});
+for (const p of ["despachante", "supervisor", "campo", "chave"]) {
+  await teste(`duplicidade BH (${p}) → 403 (sem permissão "nova")`, async () => {
+    await esperaStatus(tk[p], "GET", "/os/duplicidade?cidade=BH&uc=00000001", 403); return true;
+  });
+}
 let regrasAtual;
 await teste("regras: admin lê (editável)", async () => {
   regrasAtual = (await esperaStatus(tk.admin, "GET", "/regras", 200)).json;

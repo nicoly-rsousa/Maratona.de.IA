@@ -4,7 +4,7 @@ import {
   NovaOSSchema, TIPOS_MANUTENCAO, VincularSchema, montarHistorico, ordenarFila, perguntasDaVersao, sugerirDuplicidade, validarFatos,
   type CandidataDuplicidade, type DetalheOS, type ItemFila, type LinhaResultado, type SolicitacaoResumo,
 } from "@farol/shared";
-import { auditar, exigir, veCidade } from "../auth.js";
+import { auditar, exigir, veCidade, type Ator } from "../auth.js";
 import { carregarPublicadas, regrasEmVigor, versaoVigente } from "../config.js";
 import { db } from "../db.js";
 import { env } from "../env.js";
@@ -14,6 +14,25 @@ import { ErroDeEntrada, criarOS, qualificacoesDaCidade } from "../services/os.js
 
 /** Texto único para o front (o corpo `erro` é sempre string). */
 const mensagens = (e: z.ZodError) => e.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ` : "") + i.message).join(" ");
+
+/**
+ * Usuário Chave só configura pontuação (§13): não precisa do endereço/UC/transformador completos
+ * de nenhuma OS. Os demais perfis com `consultar` (Atendente incluso) usam esses dados para triagem,
+ * duplicidade ou operação em campo.
+ */
+const operacional = (a: Ator) => a.perfil !== "Usuário Chave";
+
+/** Mostra só os 2 últimos dígitos (§12, LGPD). */
+const mascararUC = (uc: string | null) => (uc ? "•".repeat(Math.max(uc.length - 2, 0)) + uc.slice(-2) : uc);
+
+/**
+ * Única fonte de verdade pra decidir se a UC vai completa ou mascarada (§12, LGPD).
+ * Completa só para quem despacha/supervisiona/administra; qualquer outro perfil — incluindo
+ * ausente ou desconhecido — cai em mascarada (falha segura). Toda rota usa só esta função.
+ */
+const PERFIS_UC_COMPLETA = ["Despachante", "Supervisor", "Administrador"];
+const ucParaPerfil = (uc: string | null, perfil: string | null | undefined): string | null =>
+  perfil && PERFIS_UC_COMPLETA.includes(perfil) ? uc : mascararUC(uc);
 
 // Query string: "" vira ausente; números chegam como texto.
 const txt = z.string().trim().transform((s) => (s === "" ? undefined : s)).optional();
@@ -51,8 +70,16 @@ export async function rotasOS(app: FastifyInstance) {
       const minhas = new Set(a.equipeId ? await osDaEquipe(a.equipeId) : []);
       visiveis = visiveis.filter((o) => minhas.has(o.id));
     }
+    // Quem só tem `consultar` (Atendente, Usuário Chave) não precisa do endereço para localizar a OS (§12, LGPD).
+    const completo = operacional(a);
     return visiveis
-      .map((o) => ({ ...o, posicao: posicoes.get(o.numero)!.posicao }))
+      .map((o) => ({
+        id: o.id, numero: o.numero, cidade_id: o.cidade_id,
+        endereco: completo ? o.endereco : null,
+        tipo: o.tipo, status: o.status, nivel: o.nivel, codigo: o.codigo, pontos: o.pontos,
+        prazo_limite: o.prazo_limite, aberta_em: o.aberta_em,
+        posicao: posicoes.get(o.numero)!.posicao,
+      }))
       .sort((x, y) => x.cidade_id.localeCompare(y.cidade_id) || x.posicao - y.posicao);
   });
 
@@ -98,16 +125,22 @@ export async function rotasOS(app: FastifyInstance) {
     }));
     const posicao = ordenarFila(itens).find((i) => i.num === os.numero)?.posicao ?? null;
 
+    // Quem só tem `consultar` (Atendente, Usuário Chave) não precisa do endereço/transformador/UC completos (§12, LGPD).
+    const completo = operacional(a);
     const detalhe: DetalheOS = {
       os: {
-        id: os.id, numero: os.numero, cidade: os.cidade_id, endereco: os.endereco, lat: os.lat, lng: os.lng,
-        transformador: os.transformador, uc: os.uc, tipo: os.tipo, status: os.status,
+        id: os.id, numero: os.numero, cidade: os.cidade_id,
+        endereco: completo ? os.endereco : "Endereço restrito a este perfil",
+        lat: completo ? os.lat : null, lng: completo ? os.lng : null,
+        transformador: completo ? os.transformador : null, uc: ucParaPerfil(os.uc, a.perfil),
+        tipo: os.tipo, status: os.status,
         prazoLimite: os.prazo_limite, abertaEm: os.aberta_em, exigeQualificacao: os.exige_qualificacao, posicao,
       },
       ...montarHistorico((linhas ?? []) as LinhaResultado[], nomes),
       solicitacoes,
       despachos, despacho: despachos.find((d) => ehAtivo(d.estado)) ?? null, eventos,
     };
+    if (os.uc) await auditar(a, "os.detalhe", { entidade: "os", id, cidade: os.cidade_id });
     return detalhe;
   });
 
@@ -133,6 +166,7 @@ export async function rotasOS(app: FastifyInstance) {
     if (!q.success) return reply.code(400).send({ erro: mensagens(q.error) });
     const c = q.data;
     if (!(await exigir(req, reply, "nova", c.cidade))) return;
+    const a = req.ator!;
 
     const desde = new Date(Date.now() - env.DUP_JANELA_H * 3_600_000).toISOString();
     const { data, error } = await db
@@ -148,7 +182,10 @@ export async function rotasOS(app: FastifyInstance) {
       id: o.id, numero: o.numero, cidade: o.cidade_id, endereco: o.endereco, status: o.status, codigo: o.codigo, tipo: o.tipo,
       lat: o.lat, lng: o.lng, transformador: o.transformador, uc: o.uc, conjunto: o.conjunto, abertaEmMs: Date.parse(o.aberta_em),
     }));
-    return sugerirDuplicidade({ ...c }, candidatas, Date.now(), { raioM: env.DUP_RAIO_M, janelaH: env.DUP_JANELA_H });
+    // A UC precisa continuar real até aqui: sugerirDuplicidade casa q.uc (o que o atendente digitou) com
+    // c.uc pra achar "mesma_uc" — mascarar antes do matching quebraria essa detecção. Só mascara na saída.
+    const sugestoes = sugerirDuplicidade({ ...c }, candidatas, Date.now(), { raioM: env.DUP_RAIO_M, janelaH: env.DUP_JANELA_H });
+    return sugestoes.map((s) => ({ ...s, uc: ucParaPerfil(s.uc, a.perfil) }));
   });
 
   // Nova OS: calcula prioridade e grava OS + resultado imutável (mesmo caminho do seed:os).

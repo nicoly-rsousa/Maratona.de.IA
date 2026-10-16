@@ -26,7 +26,8 @@ export interface OSFila {
   id: string;
   numero: string;
   cidade_id: string;
-  endereco: string;
+  /** null quando o perfil só tem `consultar` (Atendente, Usuário Chave) — endereço não é necessário fora da operação de campo (§12, LGPD). */
+  endereco: string | null;
   tipo: "Corretiva" | "Preventiva";
   status: string;
   nivel: number;
