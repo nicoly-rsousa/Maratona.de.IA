@@ -30,6 +30,8 @@
   /* número da OS na fila: botão mono com borda, como no protótipo */
   .os-bt { display: inline-block; padding: 3px 7px; border: 1px solid var(--ln); border-radius: 3px; background: var(--p2); color: var(--tx); text-decoration: none; }
   .os-bt:hover { border-color: var(--ac); }
+  a.bt { display: inline-block; padding: 3px 7px; border: 1px solid var(--ln); border-radius: 3px; color: var(--ac); text-decoration: none; background: var(--p2); }
+  a.bt:hover { border-color: var(--ac); }
   .tabela { border-collapse: collapse; width: 100%; }
   .tabela th, .tabela td { padding: 4px 7px; border-bottom: 1px solid var(--ln); text-align: left; white-space: nowrap; }
   .tabela th { color: var(--mu); font-weight: 500; }

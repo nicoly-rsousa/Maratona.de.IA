@@ -114,12 +114,12 @@ export default function MapaPage() {
               {d.os.length === 0 && <p className="mu" role="status">Sem OS abertas nesta cidade.</p>}
             </div>
             <aside style={{ flex: "0 1 290px", minWidth: 0 }} aria-label="Detalhes e lista de OS">
-              <label className="mb-1 flex items-center gap-1">
+              <label className="mb-2 !flex-row items-center gap-1">
                 <input type="checkbox" checked={mostrarEquipes} onChange={(e) => setMostrarEquipes(e.target.checked)} />
                 Mostrar equipes ({d.equipes.length})
               </label>
-              <div className="mb-1" aria-label="Legenda das prioridades">
-                {[0, 1, 2, 3, 4].map((k) => <span key={k} className="mr-1 inline-block"><Pill codigo={k} /></span>)}
+              <div className="mb-2 grid grid-cols-3 gap-1 [&_.pill]:block" aria-label="Legenda das prioridades">
+                {[0, 1, 2, 3, 4].map((k) => <Pill key={k} codigo={k} />)}
               </div>
               {sel ? <Detalhe sel={sel} d={d} mostrarEquipes={mostrarEquipes} /> : <div className="box mu">Selecione uma OS no mapa ou na lista.</div>}
 
