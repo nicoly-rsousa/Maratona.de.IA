@@ -10,6 +10,8 @@ import {
 import { api, apiPost } from "@/lib/api";
 import { minutosDesde } from "@/lib/format";
 import type { CriteriosNova, OSCriada, Sugestao, Vinculada } from "@/lib/types";
+import type { RespostaMapa } from "@farol/shared";
+import { Mapa } from "@/components/mapa";
 import { Carregando, ErroApi, Pill } from "@/components/ui";
 import { useApp } from "../app-context";
 
@@ -66,6 +68,7 @@ export default function NovaSolicitacaoPage() {
   const [erros, setErros] = useState<string[]>([]);
   const [criada, setCriada] = useState<OSCriada | null>(null);
   const [vinculada, setVinculada] = useState<Vinculada | null>(null);
+  const [mostrarMapa, setMostrarMapa] = useState(false);
 
   // Qualquer mudança nos dados invalida a ciência da duplicidade e os avisos anteriores.
   const mudar = <T,>(set: (v: T) => void) => (v: T) => { set(v); setCiente(false); setErros([]); };
@@ -76,6 +79,13 @@ export default function NovaSolicitacaoPage() {
     enabled: podeNova && cidade !== "",
   });
   const perguntas = criterios.data?.perguntas ?? [];
+
+  // Mapa para escolher o ponto: só consulta quando aberto; mostra as OS abertas da cidade (ajuda a ver duplicidade).
+  const mapa = useQuery({
+    queryKey: ["mapa", cidade],
+    queryFn: () => api<RespostaMapa>(`/mapa?cidade=${encodeURIComponent(cidade)}`),
+    enabled: podeNova && cidade !== "" && mostrarMapa,
+  });
   const valorDe = (id: string) => escolhas[id] ?? valorInicial(perguntas.find((p) => p.id === id)!);
 
   // ── duplicidade (§11): só consulta com um meio de localização que conta (UC, transformador, coordenadas, conjunto)
@@ -191,6 +201,8 @@ export default function NovaSolicitacaoPage() {
 
   const ocupado = criar.isPending || vincular.isPending;
   const semLocal = !temLocalizacao(latN, lngN);
+  const digitouCoord = lat.trim() !== "" || lng.trim() !== "";
+  const ponto = !semLocal ? { lat: latN as number, lng: lngN as number } : null;
 
   return (
     <>
@@ -238,6 +250,33 @@ export default function NovaSolicitacaoPage() {
             </select>
           </Campo>
         </div>
+
+        {digitouCoord && semLocal && (
+          <div className="warn" role="status">Coordenadas incompletas ou inválidas: latitude de -90 a 90 e longitude de -180 a 180 (graus decimais, com ponto). Sem localização válida a OS entra Em triagem.</div>
+        )}
+        <p>
+          <button type="button" aria-expanded={mostrarMapa} onClick={() => setMostrarMapa((v) => !v)}>
+            {mostrarMapa ? "Ocultar o mapa" : "Escolher o ponto no mapa"}
+          </button>
+          <span className="mu"> Também dá para digitar latitude e longitude acima.</span>
+        </p>
+        {mostrarMapa && (
+          mapa.isPending ? (
+            <Carregando texto="Carregando o mapa…" />
+          ) : mapa.isError ? (
+            <ErroApi erro={mapa.error} titulo="Não foi possível carregar o mapa." onRetry={() => mapa.refetch()} />
+          ) : mapa.data && (
+            <>
+              <p className="mu">Clique no mapa para preencher latitude e longitude. O círculo mostra o raio de {mapa.data.raioM} m da sugestão de duplicidade; os pontos coloridos são as OS abertas.</p>
+              <Mapa
+                os={mapa.data.os} equipes={[]} mostrarEquipes={false} selecionadaId={null}
+                raioM={mapa.data.raioM} centro={mapa.data.centro} chave={cidade} rotulo={`Mapa para escolher o local em ${cidade}`}
+                altura={340} ponto={ponto}
+                onClicar={(p) => { mudar(setLat)(String(p.lat)); mudar(setLng)(String(p.lng)); }}
+              />
+            </>
+          )
+        )}
 
         <h3>Critérios de prioridade{criterios.data && <span className="mu font-normal"> — versão v{criterios.data.versao} publicada</span>}</h3>
         {criterios.isPending ? (

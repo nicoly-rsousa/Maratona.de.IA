@@ -6,6 +6,7 @@ import { rotasOS } from "./routes/os.js";
 import { rotasCidades } from "./routes/cidades.js";
 import { rotasDespacho } from "./routes/despacho.js";
 import { rotasPontuacao } from "./routes/pontuacao.js";
+import { rotasMapa } from "./routes/mapa.js";
 import { reclassificarAbertas } from "./jobs/reclassificar.js";
 
 const app = Fastify({ logger: true });
@@ -23,6 +24,7 @@ await app.register(async (r) => {
   await r.register(rotasOS);
   await r.register(rotasDespacho);
   await r.register(rotasPontuacao);
+  await r.register(rotasMapa);
 });
 
 // Reclassificação a cada 60 s (§7). Com 1 instância no Render isso basta;

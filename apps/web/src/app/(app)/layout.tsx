@@ -25,7 +25,7 @@ const ITENS: { rotulo: string; href?: string; perm?: string[] }[] = [
   { rotulo: "Nova solicitação", href: "/nova", perm: ["nova"] },
   { rotulo: "Pontuação", href: "/pontuacao", perm: ["pontuacao", "pontuacao_aprovar"] },
   { rotulo: "Precedência", perm: ["regras"] },
-  { rotulo: "Mapa", perm: ["consultar"] },
+  { rotulo: "Mapa", href: "/mapa", perm: ["consultar"] },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -65,7 +65,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {ready && (
           <label className="mu flex items-center gap-1">
             Cidade
-            <select value={cidade} onChange={(e) => { setEscolhida(e.target.value); if (path !== "/fila") router.push("/fila"); }}>
+            <select value={cidade} onChange={(e) => { setEscolhida(e.target.value); if (path !== "/fila" && path !== "/mapa") router.push("/fila"); }}>
               {cidades.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
               {ator.todasCidades && <option value="*">Todas as cidades</option>}
             </select>

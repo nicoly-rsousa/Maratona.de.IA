@@ -10,3 +10,4 @@ export * from "./duplicidade";
 export * from "./despacho";
 export * from "./versionamento";
 export * from "./pontuacao";
+export * from "./mapa";
