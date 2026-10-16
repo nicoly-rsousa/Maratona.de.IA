@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  NovaOSSchema, OS_DEMO, REGRAS_DEMO, VERSAO_DEMO, calcularPrioridade, coordenadaDemo, distanciaM,
+  NovaOSSchema, OS_DEMO, VincularSchema, REGRAS_DEMO, VERSAO_DEMO, calcularPrioridade, coordenadaDemo, distanciaM,
   fatosAutomaticos, perguntasDaVersao, statusInicial, sugerirDuplicidade, temLocalizacao, validarFatos, valorInicial,
   type CandidataDuplicidade, type VersaoPontuacao,
 } from "./index";
@@ -188,5 +188,27 @@ describe("OS demonstrativas", () => {
     const c = coordenadaDemo(centro, 50, 50);
     expect(c.lat).toBeCloseTo(centro.lat, 9);
     expect(c.lng).toBeCloseTo(centro.lng, 9);
+  });
+});
+
+describe("vínculo de solicitação (§11)", () => {
+  it("aceita só observação e aplica padrão de fatos", () => {
+    const d = VincularSchema.parse({ observacao: "Cliente ligou de novo" });
+    expect(d.fatos).toEqual({});
+  });
+  it("valida UC, transformador e par lat/lng como na abertura", () => {
+    expect(VincularSchema.safeParse({ uc: "123" }).success).toBe(false);
+    expect(VincularSchema.safeParse({ transformador: "12" }).success).toBe(false);
+    expect(VincularSchema.safeParse({ lat: -19.9 }).success).toBe(false);
+    expect(VincularSchema.safeParse({ lat: -19.9, lng: -43.9, uc: "1000001" }).success).toBe(true);
+  });
+  it("qualificação exigida é opcional e não pode ser vazia", () => {
+    const ok = { cidade: "BH", endereco: "Rua A, 10" };
+    expect(NovaOSSchema.parse(ok).exigeQualificacao).toBeUndefined();
+    expect(NovaOSSchema.safeParse({ ...ok, exigeQualificacao: "Linha viva" }).success).toBe(true);
+    expect(NovaOSSchema.safeParse({ ...ok, exigeQualificacao: "  " }).success).toBe(false);
+  });
+  it("OS demonstrativa de cabo energizado exige Linha viva (como no protótipo)", () => {
+    expect(OS_DEMO.filter((o) => o.exigeQualificacao).map((o) => [o.endereco, o.exigeQualificacao])).toEqual([["Av. Central, 900", "Linha viva"]]);
   });
 });

@@ -1,3 +1,5 @@
+import type { Pergunta, SugestaoDuplicidade } from "@farol/shared";
+
 /** Formatos devolvidos pela API (apps/api). O detalhe da OS usa DetalheOS de @farol/shared. */
 
 export type Perfil = "Administrador" | "Atendente" | "Despachante" | "Supervisor" | "Equipe de campo" | "Usuário Chave";
@@ -8,6 +10,8 @@ export interface Ator {
   perfil: Perfil;
   todasCidades: boolean;
   cidades: string[];
+  /** permissões do perfil (nova, consultar, status, …); a API continua sendo quem decide */
+  permissoes: string[];
 }
 
 export interface Cidade {
@@ -30,3 +34,27 @@ export interface OSFila {
   aberta_em: string;
   posicao: number;
 }
+
+/** GET /os/criterios?cidade= */
+export interface CriteriosNova {
+  versao: number;
+  tipos: ("Corretiva" | "Preventiva")[];
+  perguntas: Pergunta[];
+  qualificacoes: string[];
+}
+
+/** Resposta de POST /os (apenas o que a tela usa). */
+export interface OSCriada {
+  os: { id: string; numero: string; status: string };
+  resultado: { codigo: number; pontos: number; nivel: number; motivoPrincipal: string };
+}
+
+/** Resposta de POST /os/:id/solicitacoes */
+export interface Vinculada {
+  solicitacaoId: string;
+  numero: string;
+  total: number | null;
+  reclassificada: boolean;
+}
+
+export type Sugestao = SugestaoDuplicidade;

@@ -10,7 +10,7 @@ import { dataHora } from "@/lib/format";
 import { Carregando, ErroApi, Pill } from "@/components/ui";
 import { useApp } from "../../app-context";
 
-const ABAS = ["Prioridade", "Histórico"] as const;
+const ABAS = ["Prioridade", "Histórico", "Solicitações"] as const;
 type Aba = (typeof ABAS)[number];
 
 function Prioridade({ r, d, cidadeNome }: { r: ResultadoDetalhe; d: DetalheOS; cidadeNome: string }) {
@@ -39,6 +39,29 @@ function Prioridade({ r, d, cidadeNome }: { r: ResultadoDetalhe; d: DetalheOS; c
                   {i.requerConfirmacao && <span className="mu"> (requer confirmação)</span>}
                 </td>
                 <td className="m">{i.pontos}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function Solicitacoes({ s }: { s: DetalheOS["solicitacoes"] }) {
+  return (
+    <>
+      <h3>Solicitações recebidas</h3>
+      <div className="tw">
+        <table className="tabela">
+          <thead><tr><th>Hora</th><th>Origem</th><th>Endereço informado</th><th>Observação</th></tr></thead>
+          <tbody>
+            {s.map((x) => (
+              <tr key={x.id}>
+                <td className="m">{dataHora(x.criadoEm)}</td>
+                <td>{x.origem === "abertura" ? "Abertura da OS" : "Vinculada"}</td>
+                <td>{x.endereco ?? "—"}</td>
+                <td>{x.observacao ?? "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -97,6 +120,8 @@ export default function DetalhePage() {
             {d.os.tipo} · {d.os.status}
             {d.os.transformador && <> · trafo <span className="m">{d.os.transformador}</span></>}
             {d.os.uc && <> · UC <span className="m">{d.os.uc}</span></>}
+            {d.os.exigeQualificacao && <> · exige <b>{d.os.exigeQualificacao}</b></>}
+            {" · "}{d.solicitacoes.length} {d.solicitacoes.length === 1 ? "solicitação" : "solicitações"}
           </p>
           <div className="tabs" role="tablist">
             {ABAS.map((t) => (
@@ -104,7 +129,9 @@ export default function DetalhePage() {
             ))}
           </div>
           <div className="box">
-            {!d.resultado ? (
+            {aba === "Solicitações" ? (
+              <Solicitacoes s={d.solicitacoes} />
+            ) : !d.resultado ? (
               <p className="mu">Esta OS ainda não tem resultado de prioridade calculado.</p>
             ) : aba === "Prioridade" ? (
               <Prioridade r={d.resultado} d={d} cidadeNome={cidades.find((c) => c.id === d.os.cidade)?.nome ?? d.os.cidade} />

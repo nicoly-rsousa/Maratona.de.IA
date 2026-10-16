@@ -1,14 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  NovaOSSchema, TIPOS_MANUTENCAO, montarHistorico, ordenarFila, perguntasDaVersao, sugerirDuplicidade,
-  type CandidataDuplicidade, type DetalheOS, type ItemFila, type LinhaResultado,
+  NovaOSSchema, TIPOS_MANUTENCAO, VincularSchema, montarHistorico, ordenarFila, perguntasDaVersao, sugerirDuplicidade, validarFatos,
+  type CandidataDuplicidade, type DetalheOS, type ItemFila, type LinhaResultado, type SolicitacaoResumo,
 } from "@farol/shared";
 import { auditar, exigir, veCidade } from "../auth.js";
-import { versaoVigente } from "../config.js";
+import { regrasAtivas, versaoVigente } from "../config.js";
 import { db } from "../db.js";
 import { env } from "../env.js";
-import { ErroDeEntrada, criarOS } from "../services/os.js";
+import { reclassificarOS } from "../jobs/reclassificar.js";
+import { ErroDeEntrada, criarOS, qualificacoesDaCidade } from "../services/os.js";
 
 /** Texto único para o front (o corpo `erro` é sempre string). */
 const mensagens = (e: z.ZodError) => e.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ` : "") + i.message).join(" ");
@@ -63,12 +64,16 @@ export async function rotasOS(app: FastifyInstance) {
       return reply.code(403).send({ erro: "Fora do escopo" });
     }
 
-    const [{ data: linhas, error: e2 }, { data: regras }, { data: abertas }] = await Promise.all([
+    const [{ data: linhas, error: e2 }, { data: regras }, { data: abertas }, { data: sols, error: e3 }] = await Promise.all([
       db.from("resultados_prioridade").select("*").eq("os_id", id),
       db.from("regras_precedencia").select("id, nome"),
       db.from("ordens_servico").select("*").eq("cidade_id", os.cidade_id).not("status", "in", "(Concluída,Cancelada)"),
+      db.from("solicitacoes").select("id, origem, criado_em, endereco, observacao").eq("os_id", id).order("criado_em", { ascending: true }),
     ]);
-    if (e2) return reply.code(500).send({ erro: e2.message });
+    if (e2 || e3) return reply.code(500).send({ erro: (e2 ?? e3)!.message });
+    const solicitacoes: SolicitacaoResumo[] = (sols ?? []).map((x) => ({
+      id: x.id, origem: x.origem, criadoEm: x.criado_em, endereco: x.endereco, observacao: x.observacao,
+    }));
 
     const nomes = new Map((regras ?? []).map((r) => [r.id as string, r.nome as string]));
     const itens: ItemFila[] = (abertas ?? []).map((o) => ({
@@ -81,9 +86,10 @@ export async function rotasOS(app: FastifyInstance) {
       os: {
         id: os.id, numero: os.numero, cidade: os.cidade_id, endereco: os.endereco, lat: os.lat, lng: os.lng,
         transformador: os.transformador, uc: os.uc, tipo: os.tipo, status: os.status,
-        prazoLimite: os.prazo_limite, abertaEm: os.aberta_em, posicao,
+        prazoLimite: os.prazo_limite, abertaEm: os.aberta_em, exigeQualificacao: os.exige_qualificacao, posicao,
       },
       ...montarHistorico((linhas ?? []) as LinhaResultado[], nomes),
+      solicitacoes,
     };
     return detalhe;
   });
@@ -95,7 +101,10 @@ export async function rotasOS(app: FastifyInstance) {
     if (!(await exigir(req, reply, "nova", cidade))) return;
     try {
       const { versao } = await versaoVigente(cidade);
-      return { versao: versao.v, tipos: TIPOS_MANUTENCAO, perguntas: perguntasDaVersao(versao) };
+      return {
+        versao: versao.v, tipos: TIPOS_MANUTENCAO, perguntas: perguntasDaVersao(versao),
+        qualificacoes: await qualificacoesDaCidade(cidade),
+      };
     } catch (e) {
       return reply.code(503).send({ erro: (e as Error).message });
     }
@@ -133,11 +142,48 @@ export async function rotasOS(app: FastifyInstance) {
     if (!(await exigir(req, reply, "nova", d.cidade))) return;
 
     try {
-      const { os, resultado } = await criarOS(d);
+      const { os, resultado } = await criarOS(d, { usuario: req.ator!.id });
       await auditar(req.ator, "os.criar", { entidade: "os", id: os.id, cidade: d.cidade });
       return reply.code(201).send({ os, resultado });
     } catch (e) {
       if (e instanceof ErroDeEntrada) return reply.code(400).send({ erro: e.message });
+      req.log.error(e);
+      return reply.code(500).send({ erro: (e as Error).message });
+    }
+  });
+
+  // Vincula uma nova solicitação a uma OS existente (§11). Não cria OS; reclassifica a OS (§7).
+  app.post("/os/:id/solicitacoes", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(id).success) return reply.code(400).send({ erro: "Id inválido" });
+    const body = VincularSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ erro: mensagens(body.error) });
+    const d = body.data;
+
+    const { data: os, error } = await db.from("ordens_servico").select("*").eq("id", id).maybeSingle();
+    if (error) return reply.code(500).send({ erro: error.message });
+    if (!os) return reply.code(404).send({ erro: "OS não encontrada" });
+    if (!(await exigir(req, reply, "nova", os.cidade_id))) return;
+    if (["Concluída", "Cancelada"].includes(os.status)) {
+      return reply.code(409).send({ erro: `A OS ${os.numero} está ${os.status.toLowerCase()}; abra uma nova solicitação.` });
+    }
+
+    try {
+      const { versao } = await versaoVigente(os.cidade_id);
+      const invalidos = validarFatos(d.fatos, versao);
+      if (invalidos.length) return reply.code(400).send({ erro: invalidos.join(" ") });
+
+      const { data: sol, error: e1 } = await db.from("solicitacoes").insert({
+        os_id: os.id, cidade_id: os.cidade_id, origem: "vinculada", endereco: d.endereco ?? null, lat: d.lat ?? null, lng: d.lng ?? null,
+        transformador: d.transformador ?? null, uc: d.uc ?? null, fatos: d.fatos, observacao: d.observacao ?? null, criado_por: req.ator!.id,
+      }).select("id").single();
+      if (e1 || !sol) return reply.code(500).send({ erro: e1?.message ?? "Falha ao gravar a solicitação." });
+
+      const reclassificada = await reclassificarOS(os, await regrasAtivas(), Date.now(), "Solicitação vinculada");
+      const { count } = await db.from("solicitacoes").select("id", { count: "exact", head: true }).eq("os_id", os.id);
+      await auditar(req.ator, "os.vincular_solicitacao", { entidade: "os", id: os.id, cidade: os.cidade_id, detalhe: { solicitacao: sol.id } });
+      return reply.code(201).send({ solicitacaoId: sol.id, numero: os.numero, total: count ?? null, reclassificada });
+    } catch (e) {
       req.log.error(e);
       return reply.code(500).send({ erro: (e as Error).message });
     }

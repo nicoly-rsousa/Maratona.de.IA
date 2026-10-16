@@ -4,8 +4,8 @@ import { criarOS } from "./services/os.js";
 
 // Insere as 11 OS demonstrativas do protótipo (BH e CT) pelo MESMO caminho do POST /os
 // (motor de @farol/shared → ordens_servico + resultados_prioridade).
-// Idempotente: uma OS demonstrativa já existe quando há OS na mesma cidade com o mesmo endereço.
-// Pré-requisitos: supabase/seed.sql (cidades e regras) e `npm run seed` (versão de pontuação v1).
+// Idempotente: uma OS demonstrativa já existe quando há OS marcada demo=true na mesma cidade com o mesmo endereço.
+// Pré-requisitos: 0001_init.sql, seed.sql (cidades, equipes e regras), 0002_solicitacoes.sql e `npm run seed` (versão v1).
 
 const cidadesUsadas = [...new Set(OS_DEMO.map((o) => o.cidade))];
 const { data: cidades, error: eC } = await db.from("cidades").select("id, lat, lng").in("id", cidadesUsadas);
@@ -19,7 +19,7 @@ for (const id of cidadesUsadas) {
   }
 }
 
-const { data: existentes, error: eE } = await db.from("ordens_servico").select("cidade_id, endereco").in("cidade_id", cidadesUsadas);
+const { data: existentes, error: eE } = await db.from("ordens_servico").select("cidade_id, endereco").eq("demo", true).in("cidade_id", cidadesUsadas);
 if (eE) throw new Error(`Erro ao ler OS existentes: ${eE.message}`);
 const jaExiste = new Set((existentes ?? []).map((o) => `${o.cidade_id}|${o.endereco}`));
 
@@ -31,10 +31,10 @@ for (const o of OS_DEMO) {
   const { lat, lng } = coordenadaDemo({ lat: c.lat as number, lng: c.lng as number }, o.x, o.y);
   const dados = NovaOSSchema.parse({
     cidade: o.cidade, endereco: o.endereco, lat, lng, transformador: o.transformador, uc: o.uc,
-    tipo: o.tipo, prazoH: o.prazoH, fatos: o.fatos,
+    tipo: o.tipo, prazoH: o.prazoH, fatos: o.fatos, exigeQualificacao: o.exigeQualificacao,
   });
   try {
-    const { os, resultado } = await criarOS(dados, { abertaEmMs: Date.now() - o.abertaMinAtras * 60_000 });
+    const { os, resultado } = await criarOS(dados, { abertaEmMs: Date.now() - o.abertaMinAtras * 60_000, demo: true });
     criadas++;
     console.log(`+ ${os.numero}  ${CODIGOS[resultado.codigo].padEnd(9)} nível ${resultado.nivel}  ${resultado.pontos} pts  ${o.endereco}`);
   } catch (e) {

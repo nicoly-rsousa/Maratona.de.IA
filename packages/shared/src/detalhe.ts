@@ -1,4 +1,5 @@
 import type { ItemCalculo } from "./types";
+import type { SolicitacaoResumo } from "./solicitacao";
 
 /** Linha de `resultados_prioridade` como vem do banco (snake_case). */
 export interface LinhaResultado {
@@ -66,6 +67,7 @@ export interface DetalheOS {
     status: string;
     prazoLimite: string | null;
     abertaEm: string;
+    exigeQualificacao: string | null;
     /** Posição na fila da cidade; null se a OS não está aberta. */
     posicao: number | null;
   };
@@ -73,6 +75,8 @@ export interface DetalheOS {
   resultado: ResultadoDetalhe | null;
   /** Todos os cálculos, do mais recente ao mais antigo (inclui o atual). */
   historico: ResultadoDetalhe[];
+  /** Solicitações recebidas para esta OS (abertura + vinculadas), da mais antiga à mais recente. */
+  solicitacoes: SolicitacaoResumo[];
 }
 
 /** Ordena do mais recente ao mais antigo (empate: maior id) e separa o atual. */

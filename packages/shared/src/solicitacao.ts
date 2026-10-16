@@ -82,6 +82,8 @@ export const NovaOSSchema = z
     uc: opcional(z.string().regex(UC_RE, "UC: 6 a 10 dígitos")),
     circuito: opcional(z.string().trim().min(1)),
     conjunto: opcional(z.string().trim().min(1)),
+    /** qualificação exigida (valores vêm das equipes da cidade); ausente = nenhuma */
+    exigeQualificacao: opcional(z.string().trim().min(1)),
     tipo: z.enum(TIPOS_MANUTENCAO).default("Corretiva"),
     prazoH: z.number().finite().nullable().default(null),
     fatos: z.record(z.union([z.string(), z.array(z.string())])).default({}),
@@ -91,3 +93,29 @@ export const NovaOSSchema = z
     path: ["lat"],
   });
 export type NovaOS = z.infer<typeof NovaOSSchema>;
+
+/** Corpo de POST /os/:id/solicitacoes: nova solicitação vinculada a uma OS existente (§11). */
+export const VincularSchema = z
+  .object({
+    endereco: opcional(z.string().trim().min(3)),
+    lat: opcional(z.number().min(-90).max(90)),
+    lng: opcional(z.number().min(-180).max(180)),
+    transformador: opcional(z.string().regex(TRANSFORMADOR_RE, "Transformador: 4 a 12 dígitos (texto)")),
+    uc: opcional(z.string().regex(UC_RE, "UC: 6 a 10 dígitos")),
+    observacao: opcional(z.string().trim().min(1).max(500)),
+    fatos: z.record(z.union([z.string(), z.array(z.string())])).default({}),
+  })
+  .refine((d) => (d.lat == null) === (d.lng == null), {
+    message: "Informe latitude e longitude juntas, ou nenhuma das duas.",
+    path: ["lat"],
+  });
+export type Vincular = z.infer<typeof VincularSchema>;
+
+/** Resumo de uma solicitação para o detalhe da OS. */
+export interface SolicitacaoResumo {
+  id: string;
+  origem: "abertura" | "vinculada";
+  criadoEm: string;
+  endereco: string | null;
+  observacao: string | null;
+}

@@ -5,16 +5,27 @@ import { db } from "../db.js";
 /** Entrada inválida (vira 400 na rota). */
 export class ErroDeEntrada extends Error {}
 
+/** Qualificações oferecidas pelas equipes ativas da cidade (valores válidos para "exige qualificação"). */
+export async function qualificacoesDaCidade(cidade: string): Promise<string[]> {
+  const { data, error } = await db.from("equipes").select("qualificacoes").eq("cidade_id", cidade).eq("ativa", true);
+  if (error) throw new Error(error.message);
+  return [...new Set((data ?? []).flatMap((e) => (e.qualificacoes as string[]) ?? []))].sort((a, b) => a.localeCompare(b));
+}
+
 /**
- * Cria a OS: calcula a prioridade no motor de @farol/shared e grava OS + resultado imutável.
- * Usado por POST /os e pelo seed:os, para que os dois passem exatamente pelo mesmo caminho.
- * `abertaEmMs` só existe para o seed (OS demonstrativas com tempo de espera já decorrido);
+ * Cria a OS: calcula a prioridade no motor de @farol/shared e grava OS + resultado imutável
+ * + a solicitação de abertura. Usado por POST /os e pelo seed:os, para que os dois passem exatamente
+ * pelo mesmo caminho.
+ * `abertaEmMs` e `demo` só existem para o seed (OS demonstrativas com tempo de espera já decorrido);
  * `prazoH` é sempre "horas a partir de agora".
  */
-export async function criarOS(d: NovaOS, opts: { abertaEmMs?: number } = {}) {
+export async function criarOS(d: NovaOS, opts: { abertaEmMs?: number; demo?: boolean; usuario?: string } = {}) {
   const [{ id: versaoId, versao }, regras] = await Promise.all([versaoVigente(d.cidade), regrasAtivas()]);
   const invalidos = validarFatos(d.fatos, versao);
   if (invalidos.length) throw new ErroDeEntrada(invalidos.join(" "));
+  if (d.exigeQualificacao && !(await qualificacoesDaCidade(d.cidade)).includes(d.exigeQualificacao)) {
+    throw new ErroDeEntrada(`Nenhuma equipe de ${d.cidade} tem a qualificação "${d.exigeQualificacao}".`);
+  }
 
   const agora = Date.now();
   const abertaEmMs = opts.abertaEmMs ?? agora;
@@ -27,6 +38,7 @@ export async function criarOS(d: NovaOS, opts: { abertaEmMs?: number } = {}) {
   const { data: os, error: e2 } = await db.from("ordens_servico").insert({
     numero: num, cidade_id: d.cidade, endereco: d.endereco, lat: d.lat ?? null, lng: d.lng ?? null,
     transformador: d.transformador ?? null, uc: d.uc ?? null, circuito: d.circuito ?? null, conjunto: d.conjunto ?? null,
+    exige_qualificacao: d.exigeQualificacao ?? null, demo: opts.demo ?? false,
     tipo: d.tipo, fatos: d.fatos,
     prazo_limite: d.prazoH == null ? null : new Date(agora + d.prazoH * 3_600_000).toISOString(),
     status: statusInicial(d.lat, d.lng), // §14.7
@@ -41,5 +53,11 @@ export async function criarOS(d: NovaOS, opts: { abertaEmMs?: number } = {}) {
     motivo_principal: r.motivoPrincipal, motivo_calculo: "Abertura",
   });
   if (e3) throw new Error(`OS ${os.numero} criada, mas o resultado de prioridade falhou: ${e3.message}`);
+
+  const { error: e4 } = await db.from("solicitacoes").insert({
+    os_id: os.id, cidade_id: os.cidade_id, origem: "abertura", endereco: d.endereco, lat: d.lat ?? null, lng: d.lng ?? null,
+    transformador: d.transformador ?? null, uc: d.uc ?? null, fatos: d.fatos, criado_por: opts.usuario ?? null, criado_em: os.aberta_em,
+  });
+  if (e4) throw new Error(`OS ${os.numero} criada, mas a solicitação de abertura falhou: ${e4.message}`);
   return { os, resultado: r };
 }

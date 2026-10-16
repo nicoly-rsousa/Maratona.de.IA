@@ -49,6 +49,8 @@ export interface OSDemo {
   tipo: "Corretiva" | "Preventiva";
   prazoH: number | null;
   fatos: Record<string, string>;
+  /** qualificação exigida (equipe com "Linha viva" etc.) */
+  exigeQualificacao?: string;
 }
 
 const FATOS_BASE_DEMO = { vida: "Nenhum risco", essencial: "Não", reserva: "Sim", pessoas: "1–10", estrutura: "Sem risco" };
@@ -58,7 +60,7 @@ const osDemo = (d: Omit<OSDemo, "tipo" | "prazoH" | "fatos"> & Partial<Pick<OSDe
 
 export const OS_DEMO: OSDemo[] = [
   osDemo({ cidade: "BH", endereco: "R. das Acácias, 120", x: 30, y: 35, transformador: "1234567", uc: "1000001", abertaMinAtras: 50 }),
-  osDemo({ cidade: "BH", endereco: "Av. Central, 900", x: 33, y: 38, transformador: "1234567", uc: "1000002", abertaMinAtras: 300, fatos: { vida: "Cabo energizado / choque" } }),
+  osDemo({ cidade: "BH", endereco: "Av. Central, 900", x: 33, y: 38, transformador: "1234567", uc: "1000002", abertaMinAtras: 300, exigeQualificacao: "Linha viva", fatos: { vida: "Cabo energizado / choque" } }),
   osDemo({ cidade: "BH", endereco: "Hospital Santa Luz", x: 60, y: 55, transformador: "2223344", uc: "1000003", abertaMinAtras: 20, fatos: { essencial: "Hospital / emergência", reserva: "Desconhecida", pessoas: "> 100" } }),
   osDemo({ cidade: "BH", endereco: "R. do Poste, 15", x: 75, y: 70, transformador: "3334455", uc: "1000004", abertaMinAtras: 90, fatos: { estrutura: "Risco de queda" } }),
   osDemo({ cidade: "BH", endereco: "Subestação Norte", x: 20, y: 75, transformador: "4445566", abertaMinAtras: 40, tipo: "Preventiva", prazoH: 10 }),

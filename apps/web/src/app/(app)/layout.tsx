@@ -76,6 +76,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           >
             Fila
           </Link>
+          {ator?.permissoes.includes("nova") && (
+            <Link
+              href="/nova"
+              className="btn-nav block rounded-[3px] border px-[7px] py-1"
+              aria-current={path === "/nova"}
+            >
+              Nova solicitação
+            </Link>
+          )}
         </nav>
         <main className="min-w-0 flex-1 p-3" aria-live="polite">
           {me.isError ? (

@@ -6,8 +6,8 @@ export class ApiError extends Error {
   }
 }
 
-/** GET autenticado na API (Bearer = token do Supabase Auth). Filtros de cidade/perfil são do servidor. */
-export async function api<T>(path: string): Promise<T> {
+/** Requisição autenticada na API (Bearer = token do Supabase Auth). Filtros de cidade/perfil são do servidor. */
+async function chamar<T>(path: string, init: RequestInit = {}): Promise<T> {
   const base = process.env.NEXT_PUBLIC_API_URL;
   if (!base) throw new ApiError(0, "NEXT_PUBLIC_API_URL não configurada.");
 
@@ -17,7 +17,10 @@ export async function api<T>(path: string): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(`${base.replace(/\/$/, "")}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+    res = await fetch(`${base.replace(/\/$/, "")}${path}`, {
+      ...init,
+      headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new ApiError(0, "Não foi possível falar com o servidor.");
   }
@@ -27,3 +30,8 @@ export async function api<T>(path: string): Promise<T> {
   }
   return (await res.json()) as T;
 }
+
+export const api = <T>(path: string) => chamar<T>(path);
+
+/** POST com corpo JSON. */
+export const apiPost = <T>(path: string, corpo: unknown) => chamar<T>(path, { method: "POST", body: JSON.stringify(corpo) });
