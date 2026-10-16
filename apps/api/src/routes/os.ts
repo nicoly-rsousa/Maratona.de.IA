@@ -1,6 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { calcularPrioridade, fatosAutomaticos, ordenarFila, type Fatos, type ItemFila } from "@farol/shared";
+import {
+  calcularPrioridade, fatosAutomaticos, montarHistorico, ordenarFila,
+  type DetalheOS, type Fatos, type ItemFila, type LinhaResultado,
+} from "@farol/shared";
 import { auditar, exigir, veCidade } from "../auth.js";
 import { versaoVigente, regrasAtivas } from "../config.js";
 import { db } from "../db.js";
@@ -42,6 +45,46 @@ export async function rotasOS(app: FastifyInstance) {
     return (data ?? [])
       .map((o) => ({ ...o, posicao: posicoes.get(o.numero)!.posicao }))
       .sort((x, y) => x.cidade_id.localeCompare(y.cidade_id) || x.posicao - y.posicao);
+  });
+
+  // Detalhe da OS: último resultado + histórico de recálculos ("por que esta prioridade").
+  app.get("/os/:id", async (req, reply) => {
+    if (!(await exigir(req, reply, "consultar"))) return;
+    const a = req.ator!;
+    const { id } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(id).success) return reply.code(400).send({ erro: "Id inválido" });
+
+    const { data: os, error } = await db.from("ordens_servico").select("*").eq("id", id).maybeSingle();
+    if (error) return reply.code(500).send({ erro: error.message });
+    if (!os) return reply.code(404).send({ erro: "OS não encontrada" });
+    if (!veCidade(a, os.cidade_id)) {
+      await auditar(a, "negado:os.detalhe", { entidade: "os", id, cidade: os.cidade_id, resultado: "negado" });
+      return reply.code(403).send({ erro: "Fora do escopo" });
+    }
+
+    const [{ data: linhas, error: e2 }, { data: regras }, { data: abertas }] = await Promise.all([
+      db.from("resultados_prioridade").select("*").eq("os_id", id),
+      db.from("regras_precedencia").select("id, nome"),
+      db.from("ordens_servico").select("*").eq("cidade_id", os.cidade_id).not("status", "in", "(Concluída,Cancelada)"),
+    ]);
+    if (e2) return reply.code(500).send({ erro: e2.message });
+
+    const nomes = new Map((regras ?? []).map((r) => [r.id as string, r.nome as string]));
+    const itens: ItemFila[] = (abertas ?? []).map((o) => ({
+      num: o.numero, cidade: o.cidade_id, nivel: o.nivel, codigo: o.codigo, tipo: o.tipo, pontos: o.pontos,
+      prazoMs: o.prazo_limite ? Date.parse(o.prazo_limite) : null, aberturaMs: Date.parse(o.aberta_em),
+    }));
+    const posicao = ordenarFila(itens).find((i) => i.num === os.numero)?.posicao ?? null;
+
+    const detalhe: DetalheOS = {
+      os: {
+        id: os.id, numero: os.numero, cidade: os.cidade_id, endereco: os.endereco, lat: os.lat, lng: os.lng,
+        transformador: os.transformador, uc: os.uc, tipo: os.tipo, status: os.status,
+        prazoLimite: os.prazo_limite, abertaEm: os.aberta_em, posicao,
+      },
+      ...montarHistorico((linhas ?? []) as LinhaResultado[], nomes),
+    };
+    return detalhe;
   });
 
   // Nova OS: calcula prioridade e grava OS + resultado imutável.

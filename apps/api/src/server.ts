@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import { env } from "./env.js";
 import { autenticar } from "./auth.js";
 import { rotasOS } from "./routes/os.js";
+import { rotasCidades } from "./routes/cidades.js";
 import { reclassificarAbertas } from "./jobs/reclassificar.js";
 
 const app = Fastify({ logger: true });
@@ -15,6 +16,7 @@ app.get("/health", async () => ({ ok: true, ts: new Date().toISOString() }));
 await app.register(async (r) => {
   r.addHook("preHandler", autenticar);
   r.get("/me", async (req) => req.ator);
+  await r.register(rotasCidades);
   await r.register(rotasOS);
 });
 
