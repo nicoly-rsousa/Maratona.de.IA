@@ -27,7 +27,7 @@ const cr = (
 
 export const CENARIOS_CR: OSCenario[] = [
   // CR-01: 30 clientes sem local crítico × hospital com 2.000 clientes (a mais nova passa à frente)
-  cr("CR-01", "A", "cruzeta, 30 clientes", { cidade: "BH", x: 20, y: 22, transformador: "7010001", uc: "2010001", abertaMinAtras: 30, fatos: { pessoas: "11–100" } }),
+  cr("CR-01", "A", "cruzeta, 30 clientes", { cidade: "BH", x: 20, y: 22, transformador: "7010001", uc: "2010001", abertaMinAtras: 30, fatos: { essencial: "Desconhecido", pessoas: "11–100" } }),
   cr("CR-01", "B", "cruzeta, hospital e 2.000 clientes", { cidade: "BH", x: 62, y: 24, transformador: "7010002", uc: "2010002", abertaMinAtras: 20, fatos: { essencial: "Hospital / emergência", reserva: "Não", pessoas: "> 100" } }),
   // CR-02: cruzeta que afeta hospital (reserva desconhecida) × cruzeta em rua de pouca circulação, aberta há mais tempo
   cr("CR-02", "A", "cruzeta que afeta hospital", { cidade: "BH", x: 28, y: 62, transformador: "7020001", uc: "2020001", abertaMinAtras: 15, fatos: { essencial: "Hospital / emergência", reserva: "Desconhecida", pessoas: "11–100" } }),

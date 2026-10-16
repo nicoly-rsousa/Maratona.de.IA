@@ -22,8 +22,8 @@ Tempo médio por passo entre parênteses. Os números exatos de pontos mudam com
 
 Entre como `atendente@farol.teste` → **Fila** (BH). Procure as OS que começam com **CR-** (cenários de referência do relatório, seção 12). Abra cada uma → aba **Prioridade**.
 
-- **CR-01** — compare *CR-01 A (cruzeta, 30 clientes)* com *CR-01 B (cruzeta, hospital e 2.000 clientes)*.
-  - **Dizer:** "A B foi aberta depois, mas passa à frente. Aqui está o porquê: regra de precedência *Serviço essencial sem reserva* (nível 2), e os pontos: hospital 30 + sem reserva 20 + mais de 100 pessoas 25."
+- **CR-01** — compare *CR-01 A (cruzeta, 30 clientes, serviço essencial desconhecido)* com *CR-01 B (cruzeta, hospital e 2.000 clientes)*.
+  - **Dizer:** "A B foi aberta depois, mas passa à frente. Aqui está o porquê: regra de precedência *Serviço essencial sem reserva* (nível 2), e os pontos: hospital 30 + sem reserva 20 + mais de 100 pessoas 25. Já na A o serviço essencial é *desconhecido*: não é zero, soma 10 pontos (25 no total, faixa Alta) e a OS pede confirmação, mas sem hospital confirmado a regra não se aplica."
 - **CR-02** — *CR-02 A (cruzeta que afeta hospital)* × *CR-02 B (pouca circulação, aberta há ~5 h)*.
   - **Dizer:** "A reserva do hospital era *desconhecida*. Informação desconhecida **não é risco zero**: soma pontos e pede confirmação. A de pouca circulação espera, mesmo sendo bem mais antiga: precedência vem antes de antiguidade."
 - **CR-03** — *CR-03 A (preventiva programada, prazo em 10 dias)*, *CR-03 B (corretiva comum)*, *CR-03 C (preventiva com prazo em 10 h)*.

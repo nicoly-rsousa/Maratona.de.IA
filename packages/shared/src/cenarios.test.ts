@@ -47,10 +47,18 @@ describe("CR-01 — 30 clientes sem local crítico × hospital com 2.000 cliente
     expect(pontosDe(B, "Pessoas afetadas")).toBe(25);
     expect(B.pontos).toBe(80);
     expect(CODIGOS[B.codigo]).toBe("Emergente");
-    // A: 11–100 pessoas 10 + corretiva 5 = 15 (Média)
+    // A: serviço essencial desconhecido 10 + 11–100 pessoas 10 + corretiva 5 = 25 (Alta)
+    expect(pontosDe(A, "Serviço essencial")).toBe(10);
     expect(pontosDe(A, "Pessoas afetadas")).toBe(10);
-    expect(A.pontos).toBe(15);
-    expect(CODIGOS[A.codigo]).toBe("Média");
+    expect(A.pontos).toBe(25);
+    expect(CODIGOS[A.codigo]).toBe("Alta");
+  });
+
+  it("serviço essencial desconhecido não é risco zero: soma pontos e pede confirmação (§3)", () => {
+    const essencialA = A.itens.find((i) => i.criterio === "Serviço essencial")!;
+    expect(essencialA.opcoes).toEqual(["Desconhecido"]);
+    expect(essencialA.requerConfirmacao).toBe(true);
+    expect(A.regrasAplicadas).toEqual([]); // só "Hospital / emergência" aciona a R-ESS
   });
 });
 
