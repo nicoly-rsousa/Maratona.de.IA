@@ -34,15 +34,18 @@ function useAtraso<T>(valor: T, ms: number): T {
   return v;
 }
 
-function Campo({ rotulo, dica, children }: { rotulo: string; dica?: string; children: ReactNode }) {
+/** Rótulo + campo, como no protótipo (.row label): sem texto de ajuda dentro do label, para a linha de base não variar. */
+function Campo({ id, rotulo, className, children }: { id: string; rotulo: string; className?: string; children: ReactNode }) {
   return (
-    <label>
+    <label htmlFor={id} className={className}>
       {rotulo}
       {children}
-      {dica && <span className="max-w-[260px] text-[11px]">{dica}</span>}
     </label>
   );
 }
+
+/** Opção "Desconhecido/Desconhecida" sempre por último, como no protótipo. */
+const desconhecidaPorUltimo = <T extends { desconhecida: boolean }>(ops: T[]) => [...ops.filter((o) => !o.desconhecida), ...ops.filter((o) => o.desconhecida)];
 
 export default function NovaSolicitacaoPage() {
   const { ator, cidades, cidade: cidadeHeader } = useApp();
@@ -209,50 +212,52 @@ export default function NovaSolicitacaoPage() {
       <h2>Nova solicitação</h2>
       <div className="box">
         <div className="row">
-          <Campo rotulo="Município">
-            <select value={cidade} onChange={(e) => { mudar(setCidadeSel)(e.target.value); setEscolhas({}); setQualificacao(""); }}>
+          <Campo id="n_cid" rotulo="Município">
+            <select id="n_cid" value={cidade} onChange={(e) => { mudar(setCidadeSel)(e.target.value); setEscolhas({}); setQualificacao(""); }}>
               {cidades.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Campo>
-          <Campo rotulo="Endereço" dica="Sozinho não indica duplicidade (§11); informe também UC, transformador ou coordenadas.">
-            <input value={endereco} onChange={(e) => mudar(setEndereco)(e.target.value)} autoComplete="off" />
+          <Campo id="n_end" rotulo="Endereço" className="min-w-[220px] flex-1">
+            <input id="n_end" value={endereco} onChange={(e) => mudar(setEndereco)(e.target.value)} autoComplete="off" />
           </Campo>
-          <Campo rotulo="Latitude (graus decimais)">
-            <input value={lat} onChange={(e) => mudar(setLat)(e.target.value)} inputMode="decimal" placeholder="-19.9167" />
+          <Campo id="n_lat" rotulo="Coord. Latitude">
+            <input id="n_lat" className="w-[80px]" value={lat} onChange={(e) => mudar(setLat)(e.target.value)} inputMode="decimal" autoComplete="off" placeholder="-19.9167" />
           </Campo>
-          <Campo rotulo="Longitude (graus decimais)" dica={semLocal ? "Sem localização válida a OS entra Em triagem." : undefined}>
-            <input value={lng} onChange={(e) => mudar(setLng)(e.target.value)} inputMode="decimal" placeholder="-43.9345" />
+          <Campo id="n_lng" rotulo="Longitude">
+            <input id="n_lng" className="w-[80px]" value={lng} onChange={(e) => mudar(setLng)(e.target.value)} inputMode="decimal" autoComplete="off" placeholder="-43.9345" />
           </Campo>
-          <Campo rotulo="Transformador (texto, 4 a 12 dígitos)">
-            <input value={transformador} onChange={(e) => mudar(setTransformador)(e.target.value)} inputMode="numeric" autoComplete="off" />
+          <Campo id="n_tr" rotulo="Transformador (texto, ≥ 4 dígitos)">
+            <input id="n_tr" value={transformador} onChange={(e) => mudar(setTransformador)(e.target.value)} inputMode="numeric" autoComplete="off" />
           </Campo>
-          <Campo rotulo="UC (6 a 10 dígitos)">
-            <input value={uc} onChange={(e) => mudar(setUc)(e.target.value)} inputMode="numeric" autoComplete="off" />
+          <Campo id="n_uc" rotulo="UC (6–10 dígitos)">
+            <input id="n_uc" value={uc} onChange={(e) => mudar(setUc)(e.target.value)} inputMode="numeric" autoComplete="off" />
           </Campo>
-          <Campo rotulo="Circuito (opcional)">
-            <input value={circuito} onChange={(e) => mudar(setCircuito)(e.target.value)} />
+          <Campo id="n_circ" rotulo="Circuito (opcional)">
+            <input id="n_circ" value={circuito} onChange={(e) => mudar(setCircuito)(e.target.value)} />
           </Campo>
-          <Campo rotulo="Conjunto (opcional)">
-            <input value={conjunto} onChange={(e) => mudar(setConjunto)(e.target.value)} />
+          <Campo id="n_conj" rotulo="Conjunto (opcional)">
+            <input id="n_conj" value={conjunto} onChange={(e) => mudar(setConjunto)(e.target.value)} />
           </Campo>
-          <Campo rotulo="Tipo de manutenção">
-            <select value={tipo} onChange={(e) => mudar(setTipo)(e.target.value as typeof tipo)}>
+          <Campo id="n_tipo" rotulo="Tipo">
+            <select id="n_tipo" value={tipo} onChange={(e) => mudar(setTipo)(e.target.value as typeof tipo)}>
               {(criterios.data?.tipos ?? TIPOS_MANUTENCAO).map((t) => <option key={t}>{t}</option>)}
             </select>
           </Campo>
-          <Campo rotulo="Prazo-limite (horas a partir de agora; vazio = sem prazo)">
-            <input value={prazoH} onChange={(e) => mudar(setPrazoH)(e.target.value)} inputMode="decimal" />
+          <Campo id="n_prazo" rotulo="Prazo-limite (h, vazio = sem)">
+            <input id="n_prazo" className="w-[90px]" value={prazoH} onChange={(e) => mudar(setPrazoH)(e.target.value)} inputMode="decimal" autoComplete="off" />
           </Campo>
-          <Campo rotulo="Exige qualificação">
-            <select value={qualificacao} onChange={(e) => mudar(setQualificacao)(e.target.value)}>
+          <Campo id="n_qual" rotulo="Exige qualificação">
+            <select id="n_qual" value={qualificacao} onChange={(e) => mudar(setQualificacao)(e.target.value)}>
               <option value="">Nenhuma</option>
               {(criterios.data?.qualificacoes ?? []).map((q) => <option key={q}>{q}</option>)}
             </select>
           </Campo>
         </div>
+        <p className="mu">Sozinho não indica duplicidade (§11); informe também UC, transformador ou coordenadas.</p>
+        <p className="mu">Sem localização válida a OS entra Em triagem.</p>
 
         {digitouCoord && semLocal && (
-          <div className="warn" role="status">Coordenadas incompletas ou inválidas: latitude de -90 a 90 e longitude de -180 a 180 (graus decimais, com ponto). Sem localização válida a OS entra Em triagem.</div>
+          <div className="warn" role="status">Coordenadas incompletas ou inválidas: latitude de -90 a 90 e longitude de -180 a 180 (graus decimais, com ponto).</div>
         )}
         <p>
           <button type="button" aria-expanded={mostrarMapa} onClick={() => setMostrarMapa((v) => !v)}>
@@ -286,20 +291,29 @@ export default function NovaSolicitacaoPage() {
         ) : (
           <>
             <div className="row">
-              {perguntas.map((p) => (
-                <Campo key={p.id} rotulo={p.nome}>
-                  <select value={valorDe(p.id)} onChange={(e) => mudar((v: string) => setEscolhas((x) => ({ ...x, [p.id]: v })))(e.target.value)}>
-                    {!p.opcoes.some((o) => o.desconhecida) && <option value="">Não informado</option>}
-                    {p.opcoes.map((o) => (
-                      <option key={o.label} value={o.label}>{o.label}{o.requerConfirmacao ? " (requer confirmação)" : ""}</option>
-                    ))}
-                  </select>
-                </Campo>
-              ))}
+              {perguntas.map((p) => {
+                const id = `n_${p.id}`;
+                const sel = p.opcoes.find((o) => o.label === valorDe(p.id));
+                return (
+                  <Campo key={p.id} id={id} rotulo={p.nome}>
+                    <span className="flex items-center gap-1">
+                      {/* §3: dado não informado nunca vale zero; o valor inicial é a opção "Desconhecido" (valorInicial). */}
+                      <select id={id} value={valorDe(p.id)} aria-describedby={sel?.requerConfirmacao ? `${id}_rc` : undefined} onChange={(e) => mudar((v: string) => setEscolhas((x) => ({ ...x, [p.id]: v })))(e.target.value)}>
+                        {!p.opcoes.some((o) => o.desconhecida) && <option value="">Não informado</option>}
+                        {desconhecidaPorUltimo(p.opcoes).map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
+                      </select>
+                      {sel?.requerConfirmacao && <span id={`${id}_rc`} className="mu whitespace-nowrap text-[11px]">requer confirmação</span>}
+                    </span>
+                  </Campo>
+                );
+              })}
             </div>
             <p className="mu">Não sabe um dado? Deixe a opção &quot;Desconhecido&quot;: ela soma pontos e pede confirmação, nunca vale zero. Tempo de espera e prazo são calculados pelo sistema.</p>
           </>
         )}
+        <button className="pr" disabled={ocupado || criterios.isPending || criterios.isError} onClick={registrar}>
+          {criar.isPending ? "Registrando…" : ciente && sugestoes.length > 0 ? "Não é duplicada, criar nova OS" : "Registrar solicitação"}
+        </button>
 
         {temChave && dup.isFetching && sugestoes.length === 0 && <p className="mu" role="status">Verificando duplicidade…</p>}
         {dup.isError && <p className="mu">Não foi possível verificar duplicidade agora; o registro continua disponível.</p>}
@@ -326,8 +340,8 @@ export default function NovaSolicitacaoPage() {
               </table>
             </div>
             <div className="row">
-              <Campo rotulo="Observação para o vínculo (opcional)">
-                <input value={observacao} maxLength={500} onChange={(e) => setObservacao(e.target.value)} />
+              <Campo id="n_obs" rotulo="Observação para o vínculo (opcional)">
+                <input id="n_obs" value={observacao} maxLength={500} onChange={(e) => setObservacao(e.target.value)} />
               </Campo>
             </div>
           </div>
@@ -337,11 +351,6 @@ export default function NovaSolicitacaoPage() {
           <div className="err" role="alert"><b>Corrija antes de registrar:</b><br />{erros.map((e) => <div key={e}>{e}</div>)}</div>
         )}
 
-        <p>
-          <button className="btn-pr" disabled={ocupado || criterios.isPending || criterios.isError} onClick={registrar}>
-            {criar.isPending ? "Registrando…" : ciente && sugestoes.length > 0 ? "Não é duplicada, criar nova OS" : "Registrar solicitação"}
-          </button>
-        </p>
       </div>
     </>
   );
