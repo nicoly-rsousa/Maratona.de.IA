@@ -1,6 +1,8 @@
 // Smoke test do Farol (API + site). Uso: node scripts/smoke.mjs   (API em API_URL, padrão http://localhost:3001; site em WEB_URL, padrão http://localhost:3000)
 // Não usa senhas: gera um link mágico pelo Admin API (service_role) e troca por sessão. Nunca imprime tokens, chaves nem senhas.
 // NÃO publica versão de pontuação: só valida e salva rascunho (e, se já houver rascunho, regrava o mesmo conteúdo).
+// Se o rascunho de BH não existia antes desta execução, o smoke CRIOU o dele e o descarta ao final (POST
+// /pontuacao/descartar); se já existia (trabalho de alguém), nunca descarta — só o deixa regravado com o mesmo conteúdo.
 import { readFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import { createClient } from "@supabase/supabase-js";
@@ -74,7 +76,12 @@ await teste("publicar: supervisor → 403 (só aprova)", async () => {
   await esperaStatus(tk.supervisor, "POST", "/pontuacao/publicar", 403, { rascunhoId: "00000000-0000-4000-8000-000000000000", etag: 1, justificativa: "smoke", vigenciaInicio: new Date().toISOString(), modo: "novas" }); return true;
 });
 let estado;
-await teste("pontuação BH: chave lê versões", async () => { estado = (await esperaStatus(tk.chave, "GET", "/pontuacao/versoes?escopo=BH", 200)).json; return `publicada v${estado.publicada?.numero ?? "—"}, herdada v${estado.herdada?.numero ?? "—"}, rascunho ${estado.rascunho ? "sim" : "não"}`; });
+let rascunhoPreexistenteBH = false;
+await teste("pontuação BH: chave lê versões", async () => {
+  estado = (await esperaStatus(tk.chave, "GET", "/pontuacao/versoes?escopo=BH", 200)).json;
+  rascunhoPreexistenteBH = !!estado.rascunho; // decide, no final, se o smoke pode descartar o que gravou
+  return `publicada v${estado.publicada?.numero ?? "—"}, herdada v${estado.herdada?.numero ?? "—"}, rascunho ${estado.rascunho ? "sim" : "não"}`;
+});
 const base = () => estado?.rascunho?.conteudo ?? estado?.publicada?.conteudo ?? estado?.herdada?.conteudo;
 await teste("validar conteúdo vigente: sem erros", async () => {
   const r = await esperaStatus(tk.chave, "POST", "/pontuacao/validar?escopo=BH", 200, { conteudo: base() });
@@ -85,9 +92,10 @@ await teste("validar com pontos=null bloqueia", async () => {
   const r = await esperaStatus(tk.chave, "POST", "/pontuacao/validar?escopo=BH", 200, { conteudo: c });
   exige(r.json.erros.length > 0, "pontos=null não gerou erro"); return true;
 });
+let rascunhoBH = null; // { id, etag } do rascunho como ficou depois do salvar abaixo — para o descarte no final
 await teste("salvar rascunho BH (200)", async () => {
   const r = await esperaStatus(tk.chave, "PUT", "/pontuacao/rascunho?escopo=BH", 200, { conteudo: base(), etag: estado.rascunho?.etag ?? null });
-  exige(r.json.rascunho, "sem rascunho no retorno"); return `rascunho v${r.json.rascunho.numero}`;
+  exige(r.json.rascunho, "sem rascunho no retorno"); rascunhoBH = r.json.rascunho; return `rascunho v${r.json.rascunho.numero}`;
 });
 await teste("rascunho com etag velho → 409", async () => { await esperaStatus(tk.chave, "PUT", "/pontuacao/rascunho?escopo=BH", 409, { conteudo: base(), etag: 999999 }); return true; });
 
@@ -138,6 +146,20 @@ await teste("gravar regras: conjunto vazio → 400", async () => {
 await teste("regras: nenhuma versão nova foi gravada", async () => {
   const r = await esperaStatus(tk.admin, "GET", "/regras", 200);
   exige(r.json.versao === regrasAtual.versao, `versão mudou: v${regrasAtual.versao} → v${r.json.versao}`); return `continua v${r.json.versao}`;
+});
+
+// Limpeza do rascunho de pontuação de BH: só descarta o que o PRÓPRIO smoke criou nesta execução
+// (rascunho que já existia antes continua intocado, para não apagar trabalho de alguém).
+await teste("pontuação BH: descarta o rascunho criado pelo smoke (se foi o smoke que criou)", async () => {
+  if (rascunhoPreexistenteBH) return "rascunho já existia antes; não mexido";
+  exige(rascunhoBH, "sem rascunho para descartar, mas o smoke deveria ter criado um");
+  await esperaStatus(tk.chave, "POST", "/pontuacao/descartar", 200, { rascunhoId: rascunhoBH.id, etag: rascunhoBH.etag });
+  return `descartado v${rascunhoBH.numero}`;
+});
+await teste("pontuação BH: sem rascunho pendente depois do smoke", async () => {
+  if (rascunhoPreexistenteBH) return "havia rascunho antes do smoke; verificação não se aplica";
+  const r = await esperaStatus(tk.chave, "GET", "/pontuacao/versoes?escopo=BH", 200);
+  exige(!r.json.rascunho, `sobrou rascunho v${r.json.rascunho?.numero}`); return true;
 });
 
 // Site
