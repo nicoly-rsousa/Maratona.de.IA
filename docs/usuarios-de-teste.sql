@@ -19,7 +19,8 @@
 --   Despachante    BH            status, designar, cancelar   (testa 403 em CT e o bloqueio de exceção)
 --   Supervisor     BH, CT + todas as cidades   exceção de despacho, reabrir (testa "Todas as cidades")
 --   Equipe de campo BH, equipe BH-A   só vê as OS da BH-A e registra aceite/início/conclusão
---   Usuário Chave  BH, CT        consulta + pontuação (a tela de pontuação vem em etapa futura)
+--   Usuário Chave  BH, CT        consulta + pontuação das cidades BH e CT (o escopo "Global" exige acesso a todas as
+--                                cidades: use um Administrador). O Supervisor só aprova (não edita nem publica).
 
 begin;
 

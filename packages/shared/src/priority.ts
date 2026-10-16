@@ -93,6 +93,6 @@ export function calcularPrioridade(
 }
 
 /** Só grava novo resultado se código, pontos ou precedência mudarem (reclassificação automática). */
-export function mudou(a: ResultadoPrioridade, b: ResultadoPrioridade): boolean {
+export function mudou(a: Pick<ResultadoPrioridade, "pontos" | "nivel"> & { codigo: number }, b: Pick<ResultadoPrioridade, "pontos" | "nivel"> & { codigo: number }): boolean {
   return a.codigo !== b.codigo || a.pontos !== b.pontos || a.nivel !== b.nivel;
 }

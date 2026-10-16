@@ -4,16 +4,19 @@ import { db } from "./db.js";
 export type Perfil = "Administrador" | "Atendente" | "Despachante" | "Supervisor" | "Equipe de campo" | "Usuário Chave";
 export type Permissao =
   | "nova" | "consultar" | "status" | "designar" | "cancelar" | "excecao" | "reabrir"
-  | "pontuacao" | "regras" | "auditoria" | "campo";
+  | "pontuacao" | "pontuacao_aprovar" | "regras" | "auditoria" | "campo";
 
-/** Matriz de permissões (REGRADENEGOCIO §13). */
+/**
+ * Matriz de permissões (REGRADENEGOCIO §13).
+ * `pontuacao` = editar e publicar versões; `pontuacao_aprovar` = aprovar (também o Supervisor, que só aprova).
+ */
 const BASE: Record<Perfil, Permissao[]> = {
-  "Administrador": ["nova", "consultar", "status", "designar", "cancelar", "excecao", "reabrir", "pontuacao", "regras", "auditoria", "campo"],
+  "Administrador": ["nova", "consultar", "status", "designar", "cancelar", "excecao", "reabrir", "pontuacao", "pontuacao_aprovar", "regras", "auditoria", "campo"],
   "Atendente": ["nova", "consultar"],
   "Despachante": ["consultar", "status", "designar", "cancelar"],
-  "Supervisor": ["consultar", "status", "designar", "cancelar", "excecao", "reabrir", "auditoria"],
+  "Supervisor": ["consultar", "status", "designar", "cancelar", "excecao", "reabrir", "pontuacao_aprovar", "auditoria"],
   "Equipe de campo": ["consultar", "campo"],
-  "Usuário Chave": ["consultar", "pontuacao"],
+  "Usuário Chave": ["consultar", "pontuacao", "pontuacao_aprovar"],
 };
 
 export interface Ator {

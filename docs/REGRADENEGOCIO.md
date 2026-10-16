@@ -39,12 +39,12 @@ Risco à vida e à segurança · Serviço essencial · Fonte de reserva · Pesso
 
 ## 5. Versões de pontuação (Usuário Chave)
 
-- Um rascunho por escopo (global ou cidade); gravação concorrente com token antigo → 409.
-- Publicação exige justificativa, início de vigência e escolha explícita: **somente novas OS** ou **reclassificar as OS abertas**. Opcionalmente exige aprovação de um segundo usuário (`Farol:Pontuacao:ExigirAprovacao`).
-- Versão publicada nunca é editada; restaurar uma versão cria um novo rascunho.
-- Versão da cidade prevalece sobre a global naquela cidade.
-- Cada OS fica vinculada à versão com que foi calculada; uma nova versão só a alcança se publicada com "reclassificar abertas", e o resultado anterior permanece no histórico.
-- Validações: inteiros ≥ 0 e ≤ máximo configurável; faixas sem lacunas nem sobreposições, de 0 até "sem limite"; alertas (não bloqueantes) de incoerência — p.ex. Essencial valendo menos que Residencial, "desconhecida" valendo 0 sem "requer confirmação".
+- Um rascunho por escopo (global ou cidade); gravação concorrente com token (`etag`) antigo → 409. Descartar o rascunho é possível; restaurar uma versão com rascunho aberto é recusado (409).
+- Publicação exige justificativa, início de vigência e escolha explícita (sem valor padrão): **somente novas OS** ou **reclassificar as OS abertas**. Opcionalmente exige aprovação de um segundo usuário (`pontuacao.exigir_aprovacao` na tabela `configuracoes`; padrão desligado): a versão fica "aguardando aprovação" e **quem a enviou não pode aprová-la**. Havendo uma versão aguardando aprovação no escopo, outra não é publicada.
+- Versão publicada nunca é editada; restaurar uma versão cria um novo rascunho (com o número seguinte do escopo).
+- Versão da cidade prevalece sobre a global naquela cidade. A numeração é por escopo. O escopo global só é editado por quem acessa todas as cidades; o de cidade, por quem tem a cidade no escopo (fora dele: 403 + auditoria).
+- Cada OS fica vinculada à versão com que foi calculada (`ordens_servico.versao_pontuacao_id`); todo recálculo (tempo, nova solicitação) usa a versão da própria OS. Uma nova versão só a alcança se publicada com "reclassificar abertas" e já em vigência; entre várias, vale a mais nova que reclassifica. A migração grava um novo resultado ("Nova versão vN") e atualiza o vínculo; o resultado anterior permanece no histórico. Versões "somente novas OS" valem só para OS abertas depois.
+- Validações: inteiros ≥ 0 e ≤ máximo (`pontuacao.max_pontos` em `configuracoes`, padrão 100); faixas sem lacunas nem sobreposições, de 0 até "sem limite" (o banco revalida esses erros ao publicar); alertas (não bloqueantes) de incoerência — Essencial valendo menos que Residencial, "desconhecida" valendo 0 sem "requer confirmação", critério sem opção "desconhecida".
 
 ## 6. Prazos
 
@@ -52,7 +52,7 @@ Cinco prazos distintos por código: triagem, despacho, início do atendimento, r
 
 ## 7. Reclassificação automática
 
-A cada 60 s: aplica versões cuja vigência chegou (quando "reclassificar abertas") e recalcula critérios dependentes do tempo; grava novo resultado e histórico **somente se** código, pontos ou precedência mudarem. Também reclassificam: atualização de fatos, nova solicitação vinculada, unificação, troca de município e revisão manual (justificativa obrigatória; o cálculo fica registrado ao lado).
+A cada 60 s: aplica versões cuja vigência chegou (quando "reclassificar abertas", §5) e recalcula critérios dependentes do tempo **com a versão em que a OS está**; grava novo resultado e histórico **somente se** código, pontos ou precedência mudarem (a migração de versão sempre grava). Também reclassificam: atualização de fatos, nova solicitação vinculada, unificação, troca de município e revisão manual (justificativa obrigatória; o cálculo fica registrado ao lado).
 
 ## 8. Cidades
 
@@ -91,7 +91,7 @@ Sugestão (nunca automática) para OS abertas da mesma cidade nas últimas 24 h 
 | Despachante | consultar, alterar status, atualizar fatos, designar equipes, cancelar |
 | Supervisor | despachante + revisar prioridade, trocar município, unificar, reabrir, exceção de despacho, todas as cidades, auditoria, aprovar pontuação |
 | Equipe de campo | consultar e registrar aceite/início/conclusão das próprias OS |
-| Usuário Chave | editar, publicar e aprovar pontuação; consultar |
+| Usuário Chave | editar, publicar e aprovar pontuação; consultar. Não vê a precedência (camada A) nem o despacho |
 
 ## 14. Premissas a confirmar com a operação (seção 0.2)
 

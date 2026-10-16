@@ -5,10 +5,12 @@ import { autenticar, permissoesDe } from "./auth.js";
 import { rotasOS } from "./routes/os.js";
 import { rotasCidades } from "./routes/cidades.js";
 import { rotasDespacho } from "./routes/despacho.js";
+import { rotasPontuacao } from "./routes/pontuacao.js";
 import { reclassificarAbertas } from "./jobs/reclassificar.js";
 
 const app = Fastify({ logger: true });
-await app.register(cors, { origin: env.CORS_ORIGIN.split(","), credentials: true });
+// PUT precisa estar liberado: o padrão do @fastify/cors é só GET, HEAD e POST (PUT /pontuacao/rascunho)
+await app.register(cors, { origin: env.CORS_ORIGIN.split(","), credentials: true, methods: ["GET", "HEAD", "POST", "PUT"] });
 
 // Health check público (Render usa para saber se o deploy subiu)
 app.get("/health", async () => ({ ok: true, ts: new Date().toISOString() }));
@@ -20,6 +22,7 @@ await app.register(async (r) => {
   await r.register(rotasCidades);
   await r.register(rotasOS);
   await r.register(rotasDespacho);
+  await r.register(rotasPontuacao);
 });
 
 // Reclassificação a cada 60 s (§7). Com 1 instância no Render isso basta;

@@ -5,18 +5,39 @@ export interface ResultadoValidacao {
   alertas: string[]; // não bloqueiam
 }
 
-export function validarVersao(v: VersaoPontuacao, maxPontos = 100): ResultadoValidacao {
+/**
+ * Pares de coerência (§5), só ALERTA: a opção `maior` não deve valer menos que a `menor`.
+ * Os rótulos são os do cadastro de classes do cliente; o par só vale dentro de um mesmo critério.
+ */
+const COERENCIA: readonly { maior: string; menor: string }[] = [{ maior: "Essencial", menor: "Residencial" }];
+
+const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
+
+/**
+ * Erros (bloqueiam) e alertas (não bloqueiam) de uma versão de pontuação (§5).
+ * `maxPontos` é configuração do banco (`pontuacao.max_pontos`): nunca um valor fixo no código.
+ * O banco repete os ERROS em `validar_conteudo_pontuacao` (0005); os alertas existem só aqui.
+ */
+export function validarVersao(v: VersaoPontuacao, maxPontos: number): ResultadoValidacao {
   const erros: string[] = [];
   const alertas: string[] = [];
 
   for (const c of v.criterios.filter((x) => x.habilitado)) {
     for (const o of c.opcoes) {
       if (o.pontos == null) erros.push(`"${c.nome} → ${o.label}": sem pontos definidos.`);
+      else if (!Number.isInteger(o.pontos) || o.pontos < 0) erros.push(`"${c.nome} → ${o.label}": use um inteiro maior ou igual a 0.`);
       else if (o.pontos > maxPontos) erros.push(`"${c.nome} → ${o.label}": acima do máximo (${maxPontos}).`);
       if (o.desconhecida && o.pontos === 0 && !o.requerConfirmacao)
         alertas.push(`"${c.nome}": opção desconhecida vale 0 sem "requer confirmação".`);
     }
     if (!c.opcoes.some((o) => o.desconhecida)) alertas.push(`"${c.nome}": sem opção "desconhecida".`);
+
+    for (const par of COERENCIA) {
+      const maior = c.opcoes.find((o) => norm(o.label) === norm(par.maior));
+      const menor = c.opcoes.find((o) => norm(o.label) === norm(par.menor));
+      if (maior?.pontos != null && menor?.pontos != null && maior.pontos < menor.pontos)
+        alertas.push(`"${c.nome}": "${maior.label}" vale ${maior.pontos}, menos que "${menor.label}" (${menor.pontos}).`);
+    }
   }
 
   const f = [...v.faixas].sort((a, b) => a.de - b.de);

@@ -1,19 +1,31 @@
-import { RegraSchema, VersaoPontuacaoSchema, type Regra, type VersaoPontuacao } from "@farol/shared";
+import {
+  RegraSchema, VersaoPontuacaoSchema, versaoEfetiva,
+  type ModoPublicacao, type Regra, type VersaoPontuacao, type VersaoPublicada,
+} from "@farol/shared";
 import { db } from "./db.js";
 
-/** Versão publicada e vigente: a da cidade prevalece sobre a global (§5). */
-export async function versaoVigente(cidade: string): Promise<{ id: string; versao: VersaoPontuacao }> {
+/** Todas as versões publicadas (poucas linhas). O escopo e a vigência são decididos em @farol/shared. */
+export async function carregarPublicadas(): Promise<VersaoPublicada[]> {
   const { data, error } = await db
     .from("versoes_pontuacao")
-    .select("id, numero, conteudo, cidade_id")
-    .eq("status", "publicada")
-    .lte("vigencia_inicio", new Date().toISOString())
-    .or(`cidade_id.eq.${cidade},cidade_id.is.null`)
-    .order("numero", { ascending: false });
-  if (error || !data?.length) throw new Error("Nenhuma versão de pontuação publicada.");
-  const row = data.find((r) => r.cidade_id === cidade) ?? data[0]!;
-  const versao = VersaoPontuacaoSchema.parse({ ...(row.conteudo as object), v: row.numero });
-  return { id: row.id as string, versao };
+    .select("id, cidade_id, numero, conteudo, vigencia_inicio, modo_publicacao")
+    .eq("status", "publicada");
+  if (error) throw new Error(`Erro ao ler as versões de pontuação: ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    cidadeId: (r.cidade_id as string | null) ?? null,
+    numero: r.numero as number,
+    vigenciaInicioMs: Date.parse(r.vigencia_inicio as string),
+    modo: r.modo_publicacao as ModoPublicacao,
+    versao: VersaoPontuacaoSchema.parse({ ...(r.conteudo as object), v: r.numero }),
+  }));
+}
+
+/** Versão publicada e vigente para OS NOVAS: a da cidade prevalece sobre a global (§5). */
+export async function versaoVigente(cidade: string): Promise<{ id: string; versao: VersaoPontuacao }> {
+  const v = versaoEfetiva(cidade, await carregarPublicadas(), Date.now());
+  if (!v) throw new Error("Nenhuma versão de pontuação publicada.");
+  return { id: v.id, versao: v.versao };
 }
 
 export async function regrasAtivas(): Promise<Regra[]> {
@@ -22,4 +34,21 @@ export async function regrasAtivas(): Promise<Regra[]> {
   return (data ?? []).map((r) =>
     RegraSchema.parse({ id: r.id, nome: r.nome, ativa: r.ativa, cond: r.cond, nivel: r.nivel, prioridadeMinima: r.prioridade_minima }),
   );
+}
+
+export interface ConfigPontuacao {
+  maxPontos: number;
+  exigirAprovacao: boolean;
+}
+
+/** Limites da pontuação, lidos da tabela `configuracoes` (nunca fixos no código). */
+export async function configPontuacao(): Promise<ConfigPontuacao> {
+  const { data, error } = await db.from("configuracoes").select("chave, valor").in("chave", ["pontuacao.max_pontos", "pontuacao.exigir_aprovacao"]);
+  if (error) throw new Error(`Erro ao ler as configurações: ${error.message}`);
+  const v = new Map((data ?? []).map((r) => [r.chave as string, r.valor as unknown]));
+  const max = v.get("pontuacao.max_pontos");
+  const exigir = v.get("pontuacao.exigir_aprovacao");
+  if (typeof max !== "number" || !Number.isInteger(max) || max < 1) throw new Error('Configuração "pontuacao.max_pontos" ausente ou inválida.');
+  if (typeof exigir !== "boolean") throw new Error('Configuração "pontuacao.exigir_aprovacao" ausente ou inválida.');
+  return { maxPontos: max, exigirAprovacao: exigir };
 }

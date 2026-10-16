@@ -22,11 +22,11 @@ const TIPO_EVENTO: Record<string, string> = {
   status: "Status", designacao: "Designação", aceite: "Aceite", inicio: "Início", conclusao: "Conclusão", remocao: "Remoção de equipe",
 };
 
-function Eventos({ d }: { d: DetalheOS }) {
+function Eventos({ d, comDespachos }: { d: DetalheOS; comDespachos: boolean }) {
   return (
     <>
-      <h3>Despachos (o registro anterior é preservado)</h3>
-      {d.despachos.length === 0 ? (
+      {comDespachos && <h3>Despachos (o registro anterior é preservado)</h3>}
+      {!comDespachos ? null : d.despachos.length === 0 ? (
         <p className="mu">Nenhum despacho.</p>
       ) : (
         <div className="tw">
@@ -154,6 +154,9 @@ export default function DetalhePage() {
   const { id } = useParams<{ id: string }>();
   const { ator, cidades } = useApp();
   const [aba, setAba] = useState<Aba>("Prioridade");
+  // O Usuário Chave configura a pontuação e não vê o despacho (§13); a API também não o envia a ele.
+  const veDespacho = ator.perfil !== "Usuário Chave";
+  const abas: readonly Aba[] = veDespacho ? ABAS : ABAS.filter((t) => t !== "Despacho");
 
   const q = useQuery({ queryKey: ["os", id], queryFn: () => api<DetalheOS>(`/os/${encodeURIComponent(id)}`), refetchInterval: 60_000 });
   const d = q.data;
@@ -178,7 +181,7 @@ export default function DetalhePage() {
             {" · "}{d.solicitacoes.length} {d.solicitacoes.length === 1 ? "solicitação" : "solicitações"}
           </p>
           <div className="tabs" role="tablist" aria-label="Seções da OS">
-            {ABAS.map((t) => (
+            {abas.map((t) => (
               <button key={t} role="tab" id={`aba-${t}`} aria-selected={aba === t} aria-controls="painel-os" onClick={() => setAba(t)}>
                 {t}
               </button>
@@ -192,7 +195,7 @@ export default function DetalhePage() {
             ) : aba === "Histórico" ? (
               <>
                 {d.resultado ? <Historico h={d.historico} /> : <p className="mu">Esta OS ainda não tem resultado de prioridade calculado.</p>}
-                <Eventos d={d} />
+                <Eventos d={d} comDespachos={veDespacho} />
                 <Solicitacoes s={d.solicitacoes} />
               </>
             ) : !d.resultado ? (

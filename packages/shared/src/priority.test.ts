@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  REGRAS_DEMO, VERSAO_DEMO, calcularPrioridade, fatosAutomaticos, ordenarFila, validarVersao,
-  transicaoManualPermitida, type Fatos, type ItemFila, type VersaoPontuacao,
+  REGRAS_DEMO, VERSAO_DEMO, calcularPrioridade, fatosAutomaticos, ordenarFila,
+  transicaoManualPermitida, type Fatos, type ItemFila,
 } from "./index";
 
 const base: Fatos = {
@@ -92,26 +92,7 @@ describe("fila (§2)", () => {
   });
 });
 
-describe("validação de versão", () => {
-  it("demo é válida", () => {
-    expect(validarVersao(VERSAO_DEMO).erros).toEqual([]);
-  });
-
-  it("pontos nulos (sem pontos definidos) bloqueiam a publicação", () => {
-    const v: VersaoPontuacao = structuredClone(VERSAO_DEMO);
-    v.criterios[0]!.opcoes[1]!.pontos = null;
-    expect(validarVersao(v).erros.length).toBeGreaterThan(0);
-  });
-
-  it("detecta lacuna e sobreposição de faixas", () => {
-    const v: VersaoPontuacao = structuredClone(VERSAO_DEMO);
-    v.faixas[1]!.de = 12; // lacuna 9→12
-    expect(validarVersao(v).erros.join()).toContain("Lacuna");
-    const w: VersaoPontuacao = structuredClone(VERSAO_DEMO);
-    w.faixas[1]!.de = 8; // sobreposição
-    expect(validarVersao(w).erros.join()).toContain("Sobreposição");
-  });
-});
+// A validação completa (erros e alertas do §5) está em validate.test.ts.
 
 describe("status (§10)", () => {
   it("só permite transições manuais previstas", () => {

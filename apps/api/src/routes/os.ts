@@ -5,7 +5,7 @@ import {
   type CandidataDuplicidade, type DetalheOS, type ItemFila, type LinhaResultado, type SolicitacaoResumo,
 } from "@farol/shared";
 import { auditar, exigir, veCidade } from "../auth.js";
-import { regrasAtivas, versaoVigente } from "../config.js";
+import { carregarPublicadas, regrasAtivas, versaoVigente } from "../config.js";
 import { db } from "../db.js";
 import { env } from "../env.js";
 import { reclassificarOS } from "../jobs/reclassificar.js";
@@ -83,7 +83,10 @@ export async function rotasOS(app: FastifyInstance) {
       db.from("solicitacoes").select("id, origem, criado_em, endereco, observacao").eq("os_id", id).order("criado_em", { ascending: true }),
     ]);
     if (e2 || e3) return reply.code(500).send({ erro: (e2 ?? e3)!.message });
-    const [despachos, eventos] = await Promise.all([despachosDaOS(id), eventosDaOS(id)]);
+    // O Usuário Chave configura a pontuação e não vê o despacho (§13): só os eventos de status seguem.
+    const semDespacho = a.perfil === "Usuário Chave";
+    const [despachos, todosEventos] = await Promise.all([semDespacho ? [] : despachosDaOS(id), eventosDaOS(id)]);
+    const eventos = semDespacho ? todosEventos.filter((e) => e.tipo === "status") : todosEventos;
     const solicitacoes: SolicitacaoResumo[] = (sols ?? []).map((x) => ({
       id: x.id, origem: x.origem, criadoEm: x.criado_em, endereco: x.endereco, observacao: x.observacao,
     }));
@@ -193,7 +196,7 @@ export async function rotasOS(app: FastifyInstance) {
       }).select("id").single();
       if (e1 || !sol) return reply.code(500).send({ erro: e1?.message ?? "Falha ao gravar a solicitação." });
 
-      const reclassificada = await reclassificarOS(os, await regrasAtivas(), Date.now(), "Solicitação vinculada");
+      const reclassificada = await reclassificarOS(os, await regrasAtivas(), await carregarPublicadas(), Date.now(), "Solicitação vinculada");
       const { count } = await db.from("solicitacoes").select("id", { count: "exact", head: true }).eq("os_id", os.id);
       await auditar(req.ator, "os.vincular_solicitacao", { entidade: "os", id: os.id, cidade: os.cidade_id, detalhe: { solicitacao: sol.id } });
       return reply.code(201).send({ solicitacaoId: sol.id, numero: os.numero, total: count ?? null, reclassificada });
