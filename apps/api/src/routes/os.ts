@@ -134,8 +134,12 @@ export async function rotasOS(app: FastifyInstance) {
     const c = q.data;
     if (!(await exigir(req, reply, "nova", c.cidade))) return;
 
-    const candidatas = await candidatasAbertasDaCidade(c.cidade);
-    return sugerirDuplicidade({ ...c }, candidatas, Date.now(), { raioM: env.DUP_RAIO_M, janelaH: env.DUP_JANELA_H });
+    try {
+      const candidatas = await candidatasAbertasDaCidade(c.cidade);
+      return sugerirDuplicidade({ ...c }, candidatas, Date.now(), { raioM: env.DUP_RAIO_M, janelaH: env.DUP_JANELA_H });
+    } catch (e) {
+      return reply.code(500).send({ erro: (e as Error).message });
+    }
   });
 
   // Importação de planilha (CSV) em "Nova solicitação": só prévia, nada é gravado (§11, duplicidade nunca é automática).
