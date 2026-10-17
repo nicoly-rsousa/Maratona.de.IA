@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   REGRAS_DEMO, VERSAO_DEMO, calcularPrioridade, fatosAutomaticos, ordenarFila,
-  transicaoManualPermitida, type Fatos, type ItemFila,
+  type Fatos, type ItemFila,
 } from "./index";
 
 const base: Fatos = {
@@ -92,12 +92,4 @@ describe("fila (§2)", () => {
   });
 });
 
-// A validação completa (erros e alertas do §5) está em validate.test.ts.
-
-describe("status (§10)", () => {
-  it("só permite transições manuais previstas", () => {
-    expect(transicaoManualPermitida("Aberta", "Em triagem")).toBe(true);
-    expect(transicaoManualPermitida("Aberta", "Concluída")).toBe(false);
-    expect(transicaoManualPermitida("Concluída", "Aguardando despacho")).toBe(true);
-  });
-});
+// A validação completa (erros e alertas do §5) está em validate.test.ts; os status (§10), em status.test.ts.

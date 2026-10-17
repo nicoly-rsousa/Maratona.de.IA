@@ -1,8 +1,22 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  exigeMotivo, permissaoDaTransicao, todasTransicoes, transicaoManualPermitida, transicoesManuais, type StatusOS,
+  STATUS_OS, exigeMotivo, permissaoDaTransicao, todasTransicoes, transicaoManualPermitida, transicoesManuais, type StatusOS,
 } from "./status";
+
+describe("lista de status (§10)", () => {
+  it("tem os 10 status do enum do banco, sem repetição", () => {
+    expect(STATUS_OS).toHaveLength(10);
+    expect(new Set(STATUS_OS).size).toBe(STATUS_OS.length);
+  });
+
+  it("cobre todas as origens e destinos das transições manuais", () => {
+    for (const t of todasTransicoes()) {
+      expect(STATUS_OS).toContain(t.de);
+      expect(STATUS_OS).toContain(t.para);
+    }
+  });
+});
 
 describe("transições manuais de status (§10)", () => {
   it("permite as transições do §10", () => {

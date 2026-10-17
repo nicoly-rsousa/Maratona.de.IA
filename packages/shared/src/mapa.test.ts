@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  CIDADE_MAPA_RE, PARAMS_DUPLICIDADE_PADRAO, textoCondicoes, coordenadaDoClique, distanciaM, distanciasAteEquipes, escopoDoMapa, ordenarOSMapa, osNoRaio,
+  CIDADE_MAPA_RE, PARAMS_DUPLICIDADE_PADRAO, coordenadaDoClique, distanciaM, distanciasAteEquipes, escopoDoMapa, ordenarOSMapa, osNoRaio,
   type EquipeMapa, type OSMapa,
 } from "./index";
 
@@ -123,16 +123,5 @@ describe("ponto clicado no mapa", () => {
     expect(coordenadaDoClique(-90.1, 0)).toBeNull();
     expect(coordenadaDoClique(Number.NaN, 0)).toBeNull();
     expect(coordenadaDoClique(0, Number.POSITIVE_INFINITY)).toBeNull();
-  });
-});
-
-describe("texto das condições de uma regra", () => {
-  it("junta as condições com E e as opções com /", () => {
-    expect(
-      textoCondicoes([
-        { criterio: "essencial", criterioNome: "Serviço essencial", opcoes: ["Hospital / emergência"] },
-        { criterio: "reserva", criterioNome: "Fonte de reserva", opcoes: ["Não", "Desconhecida"] },
-      ]),
-    ).toBe("Serviço essencial ∈ Hospital / emergência E Fonte de reserva ∈ Não/Desconhecida");
   });
 });

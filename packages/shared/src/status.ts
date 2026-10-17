@@ -1,6 +1,9 @@
-export type StatusOS =
-  | "Aberta" | "Em triagem" | "Aguardando despacho" | "Suspensa" | "Equipe designada"
-  | "A caminho" | "Em execução" | "Aguardando recurso" | "Concluída" | "Cancelada";
+/** Todos os status da OS (espelha o enum do banco); fonte única para tipos e validação de entrada na API. */
+export const STATUS_OS = [
+  "Aberta", "Em triagem", "Aguardando despacho", "Suspensa", "Equipe designada",
+  "A caminho", "Em execução", "Aguardando recurso", "Concluída", "Cancelada",
+] as const;
+export type StatusOS = (typeof STATUS_OS)[number];
 
 /** Permissão que libera a transição (a matriz de perfis fica na API, §13). */
 export type PermissaoTransicao = "status" | "cancelar" | "reabrir";
