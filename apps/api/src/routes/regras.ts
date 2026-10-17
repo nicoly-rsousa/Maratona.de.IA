@@ -6,12 +6,11 @@ import {
 import { auditar, exigir, pode } from "../auth.js";
 import { carregarPublicadas, regrasAtivas } from "../config.js";
 import { db } from "../db.js";
+import { mensagens } from "../http.js";
 import { reclassificarAbertas } from "../jobs/reclassificar.js";
-import { traduzirErroRpc } from "../services/despacho.js";
+import { traduzirErroRpc } from "../services/rpc.js";
 import { abertasParaImpacto, montarRespostaRegras, pontuacaoBase, versoesDeCidades } from "../services/regras.js";
 
-const mensagens = (e: { issues: { path: (string | number)[]; message: string }[] }) =>
-  e.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ` : "") + i.message).join(" ");
 
 export async function rotasRegras(app: FastifyInstance) {
   // Regras de precedência (camada A): consulta para quem pode ver; edição só do Administrador (PUT abaixo).

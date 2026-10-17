@@ -6,15 +6,14 @@ import {
 } from "@farol/shared";
 import { auditar, pode, veCidade, type Permissao } from "../auth.js";
 import { configPontuacao } from "../config.js";
-import { db } from "../db.js";
-import { traduzirErroRpc } from "../services/despacho.js";
+import { db, type Linha } from "../db.js";
+import { mensagens } from "../http.js";
+import { traduzirErroRpc } from "../services/rpc.js";
 import { cidadeDoEscopo, escopoDaLinha, escopoExiste, montarEstado } from "../services/pontuacao.js";
 
 const EscopoQuery = z.object({ escopo: EscopoSchema });
 
-const mensagens = (e: z.ZodError) => e.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ` : "") + i.message).join(" ");
 
-type Linha = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- linha de versoes_pontuacao
 
 /**
  * Permissão e escopo (§8, §13). Sem `escopo` só confere a permissão. Escopo de cidade: o usuário tem de ver a

@@ -3,9 +3,8 @@ import {
   type EstadoPontuacao, type VersaoComConteudo, type VersaoResumo,
 } from "@farol/shared";
 import { carregarPublicadas, configPontuacao } from "../config.js";
-import { db } from "../db.js";
+import { db, type Linha } from "../db.js";
 
-type Linha = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- linha de versoes_pontuacao
 
 /** Cidade do escopo: null = global. */
 export const cidadeDoEscopo = (escopo: string): string | null => (escopo === ESCOPO_GLOBAL ? null : escopo);

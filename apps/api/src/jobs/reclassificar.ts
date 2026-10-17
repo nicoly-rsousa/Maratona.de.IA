@@ -1,10 +1,9 @@
 import { pathToFileURL } from "node:url";
 import { planejarReclassificacao, type Fatos, type Regra, type VersaoPublicada } from "@farol/shared";
-import { db } from "../db.js";
+import { db, type Linha } from "../db.js";
 import { carregarPublicadas, regrasEmVigor } from "../config.js";
 import { lerAbertas } from "../services/os.js";
 
-type LinhaOS = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- linha de ordens_servico
 
 /**
  * Recalcula uma OS com a versão em que ela está (`versao_pontuacao_id`), nunca com a vigente (§5, §7).
@@ -17,7 +16,7 @@ type LinhaOS = Record<string, any>; // eslint-disable-line @typescript-eslint/no
  * código, pontos ou precedência mudarem. Com `motivoDeRegras` (a rotina), o motivo vira "Regras vN: <justificativa>".
  */
 export async function reclassificarOS(
-  o: LinhaOS, regras: Regra[], publicadas: VersaoPublicada[], agora: number, motivo: string,
+  o: Linha, regras: Regra[], publicadas: VersaoPublicada[], agora: number, motivo: string,
   opts: { migrar?: boolean; regras?: { numero: number; justificativa: string }; motivoDeRegras?: boolean } = {},
 ): Promise<boolean> {
   const plano = planejarReclassificacao(

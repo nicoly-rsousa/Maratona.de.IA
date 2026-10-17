@@ -1,7 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import type { Ator, Perfil } from "@farol/shared";
 import { db } from "./db.js";
 
-export type Perfil = "Administrador" | "Atendente" | "Despachante" | "Supervisor" | "Equipe de campo" | "Usuário Chave";
+export type { Ator, Perfil };
 export type Permissao =
   | "nova" | "consultar" | "status" | "designar" | "cancelar" | "excecao" | "reabrir"
   | "pontuacao" | "pontuacao_aprovar" | "regras" | "auditoria" | "campo";
@@ -18,16 +19,6 @@ const BASE: Record<Perfil, Permissao[]> = {
   "Equipe de campo": ["consultar", "campo"],
   "Usuário Chave": ["consultar", "pontuacao", "pontuacao_aprovar"],
 };
-
-export interface Ator {
-  id: string;
-  nome: string;
-  perfil: Perfil;
-  todasCidades: boolean;
-  cidades: string[];
-  /** só o perfil Equipe de campo: a equipe cujas OS ele vê e atende */
-  equipeId: string | null;
-}
 
 declare module "fastify" {
   interface FastifyRequest { ator?: Ator }

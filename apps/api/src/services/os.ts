@@ -1,18 +1,18 @@
 import { calcularPrioridade, fatosAutomaticos, statusInicial, validarFatos, type Fatos, type NovaOS } from "@farol/shared";
 import { regrasEmVigor, versaoVigente } from "../config.js";
-import { db } from "../db.js";
+import { STATUS_FINAIS, db, type Linha } from "../db.js";
 
 /** Entrada inválida (vira 400 na rota). */
 export class ErroDeEntrada extends Error {}
 
 /** OS abertas (todas as colunas), lidas em páginas: o PostgREST corta em 1000 linhas por consulta. */
-export async function lerAbertas(colunas = "*"): Promise<Record<string, any>[]> { // eslint-disable-line @typescript-eslint/no-explicit-any -- linhas de ordens_servico
+export async function lerAbertas(colunas = "*"): Promise<Linha[]> {
   const PAGINA = 1000;
-  const todas: Record<string, any>[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const todas: Linha[] = [];
   for (let de = 0; ; de += PAGINA) {
-    const { data, error } = await db.from("ordens_servico").select(colunas).not("status", "in", "(Concluída,Cancelada)").order("id").range(de, de + PAGINA - 1);
+    const { data, error } = await db.from("ordens_servico").select(colunas).not("status", "in", STATUS_FINAIS).order("id").range(de, de + PAGINA - 1);
     if (error) throw new Error(`Erro ao ler as OS abertas: ${error.message}`);
-    todas.push(...((data ?? []) as unknown as Record<string, any>[])); // eslint-disable-line @typescript-eslint/no-explicit-any
+    todas.push(...((data ?? []) as unknown as Linha[]));
     if (!data || data.length < PAGINA) return todas;
   }
 }

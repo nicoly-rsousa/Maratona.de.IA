@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { CIDADE_MAPA_RE, escopoDoMapa, type EquipeMapa, type OSMapa, type RespostaMapa } from "@farol/shared";
 import { auditar, exigir } from "../auth.js";
-import { db } from "../db.js";
+import { STATUS_FINAIS, db } from "../db.js";
 import { env } from "../env.js";
 import { equipesCandidatas, osDaEquipe } from "../services/despacho.js";
 
@@ -22,7 +22,7 @@ export async function rotasMapa(app: FastifyInstance) {
       return reply.code(403).send({ erro: escopo.motivo === "todas_cidades" ? "Sem permissão para todas as cidades" : "Fora do escopo" });
     }
 
-    let q = db.from("ordens_servico").select("id, numero, cidade_id, lat, lng, codigo, nivel, status, tipo").not("status", "in", "(Concluída,Cancelada)");
+    let q = db.from("ordens_servico").select("id, numero, cidade_id, lat, lng, codigo, nivel, status, tipo").not("status", "in", STATUS_FINAIS);
     if (cidade !== "*") q = q.eq("cidade_id", cidade);
     const { data, error } = await q;
     if (error) return reply.code(500).send({ erro: error.message });

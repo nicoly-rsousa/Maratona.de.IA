@@ -6,14 +6,13 @@ import {
 } from "@farol/shared";
 import { auditar, exigir, veCidade } from "../auth.js";
 import { carregarPublicadas, regrasEmVigor, versaoVigente } from "../config.js";
-import { db } from "../db.js";
+import { STATUS_FINAIS, db } from "../db.js";
+import { idValido, mensagens } from "../http.js";
 import { env } from "../env.js";
 import { reclassificarOS } from "../jobs/reclassificar.js";
 import { despachosDaOS, ehAtivo, eventosDaOS, osDaEquipe } from "../services/despacho.js";
 import { ErroDeEntrada, criarOS, qualificacoesDaCidade } from "../services/os.js";
 
-/** Texto único para o front (o corpo `erro` é sempre string). */
-const mensagens = (e: z.ZodError) => e.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ` : "") + i.message).join(" ");
 
 // Query string: "" vira ausente; números chegam como texto.
 const txt = z.string().trim().transform((s) => (s === "" ? undefined : s)).optional();
@@ -30,7 +29,7 @@ export async function rotasOS(app: FastifyInstance) {
     const a = req.ator!;
     const { cidade = "*" } = req.query as { cidade?: string };
 
-    let q = db.from("ordens_servico").select("*").not("status", "in", "(Concluída,Cancelada)");
+    let q = db.from("ordens_servico").select("*").not("status", "in", STATUS_FINAIS);
     if (cidade === "*") {
       if (!a.todasCidades) return reply.code(403).send({ erro: "Sem permissão para todas as cidades" });
     } else {
@@ -61,7 +60,7 @@ export async function rotasOS(app: FastifyInstance) {
     if (!(await exigir(req, reply, "consultar"))) return;
     const a = req.ator!;
     const { id } = req.params as { id: string };
-    if (!z.string().uuid().safeParse(id).success) return reply.code(400).send({ erro: "Id inválido" });
+    if (!idValido(id)) return reply.code(400).send({ erro: "Id inválido" });
 
     const { data: os, error } = await db.from("ordens_servico").select("*").eq("id", id).maybeSingle();
     if (error) return reply.code(500).send({ erro: error.message });
@@ -79,7 +78,7 @@ export async function rotasOS(app: FastifyInstance) {
     const [{ data: linhas, error: e2 }, { data: regras }, { data: abertas }, { data: sols, error: e3 }] = await Promise.all([
       db.from("resultados_prioridade").select("*").eq("os_id", id),
       db.from("regras_precedencia").select("id, nome"),
-      db.from("ordens_servico").select("*").eq("cidade_id", os.cidade_id).not("status", "in", "(Concluída,Cancelada)"),
+      db.from("ordens_servico").select("*").eq("cidade_id", os.cidade_id).not("status", "in", STATUS_FINAIS),
       db.from("solicitacoes").select("id, origem, criado_em, endereco, observacao").eq("os_id", id).order("criado_em", { ascending: true }),
     ]);
     if (e2 || e3) return reply.code(500).send({ erro: (e2 ?? e3)!.message });
@@ -139,7 +138,7 @@ export async function rotasOS(app: FastifyInstance) {
       .from("ordens_servico")
       .select("id, numero, cidade_id, endereco, status, codigo, tipo, lat, lng, transformador, uc, conjunto, aberta_em")
       .eq("cidade_id", c.cidade)
-      .not("status", "in", "(Concluída,Cancelada)")
+      .not("status", "in", STATUS_FINAIS)
       .gte("aberta_em", desde)
       .limit(1000);
     if (error) return reply.code(500).send({ erro: error.message });
@@ -172,7 +171,7 @@ export async function rotasOS(app: FastifyInstance) {
   // Vincula uma nova solicitação a uma OS existente (§11). Não cria OS; reclassifica a OS (§7).
   app.post("/os/:id/solicitacoes", async (req, reply) => {
     const { id } = req.params as { id: string };
-    if (!z.string().uuid().safeParse(id).success) return reply.code(400).send({ erro: "Id inválido" });
+    if (!idValido(id)) return reply.code(400).send({ erro: "Id inválido" });
     const body = VincularSchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ erro: mensagens(body.error) });
     const d = body.data;
