@@ -1,7 +1,10 @@
 {
   "name": "farol",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "test": "npm run test -w @farol/shared",
     "dev:api": "npm run dev -w @farol/api",
@@ -11,6 +14,12 @@
     "seed:cr": "npm run seed:cr -w @farol/api",
     "dev:web": "npm run dev -w @farol/web",
     "build:web": "npm run build -w @farol/web",
-    "typecheck": "npm run typecheck -w @farol/shared && npm run typecheck -w @farol/api && npm run typecheck -w @farol/web"
+    "typecheck": "npm run typecheck -w @farol/shared && npm run typecheck -w @farol/api && npm run typecheck -w @farol/web",
+    "check:contrast": "node scripts/contraste.mjs",
+    "db:local": "node scripts/db-local.mjs",
+    "dev": "node scripts/iniciar.mjs"
+  },
+  "devDependencies": {
+    "supabase": "^2.118.0"
   }
 }
