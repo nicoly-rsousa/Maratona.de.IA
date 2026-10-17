@@ -6,12 +6,12 @@
 
 | Item | Como conferir |
 |---|---|
-| Banco com `0001` → `seed.sql` → `0002` → `0003` → `0004` → `0005` | roteiros em `docs/teste-*.md` |
+| Banco com `0001` → `seed.sql` → `0002` → … → `0007` | ordem no README (seção "Banco") |
 | Dados: `npm run seed`, `npm run seed:os`, **`npm run seed:cr`** | o último imprime as 9 OS "CR-0X …" |
 | Usuários de `docs/usuarios-de-teste.sql` + **um Administrador** (o seu) | login de cada um funciona |
-| **API acordada**: abra `https://SUA-API/health` | no Render o plano gratuito dorme; a primeira chamada leva ~1 min |
+| **API no ar**: abra `https://SUA-API/health` | o `render.yaml` usa o plano `starter`, que não dorme; num plano gratuito a primeira chamada leva ~1 min |
 | Dois navegadores (ou um normal + um anônimo) já logados | despachante em um, supervisor no outro |
-| `seed:cr` rodado **no mesmo dia** | a duplicidade (passo 3) olha as últimas 24 h de abertura |
+| `seed:cr` rodado **no mesmo dia** | a duplicidade (passo 2) olha as últimas 24 h de abertura |
 | Banco de ensaio, não o de produção | o passo 6 publica uma versão de pontuação, que **não se apaga** |
 
 Tempo médio por passo entre parênteses. Os números exatos de pontos mudam com o passar do tempo (a espera soma pontos); **a ordem entre os cenários não muda**.
@@ -28,7 +28,7 @@ Entre como `atendente@farol.teste` → **Fila** (BH). Procure as OS que começam
   - **Dizer:** "A reserva do hospital era *desconhecida*. Informação desconhecida **não é risco zero**: soma pontos e pede confirmação. A de pouca circulação espera, mesmo sendo bem mais antiga: precedência vem antes de antiguidade."
 - **CR-03** — *CR-03 A (preventiva programada, prazo em 10 dias)*, *CR-03 B (corretiva comum)*, *CR-03 C (preventiva com prazo em 10 h)*.
   - **Dizer:** "Com o prazo longe, a programada não passa a corretiva: em prioridade equivalente, corretiva primeiro. A C tem o prazo iminente: a regra *Preventiva com prazo iminente* a antecipa. Não é um número escondido: aparece em 'Regras de precedência aplicadas'."
-- **CR-04** — *CR-04 A (risco de queda)* × *CR-04 B (150 clientes)*: a A vem primeiro pela regra *Estrutura com risco de queda*. A disputa pela equipe fica para o passo 4.
+- **CR-04** — *CR-04 A (risco de queda)* × *CR-04 B (150 clientes)*: a A vem primeiro pela regra *Estrutura com risco de queda*. A disputa pela equipe fica para o passo 3.
 
 **O que pode dar errado:** a fila mostra também as 11 OS do protótipo, então a *posição* absoluta varia; compare a ordem **entre** as OS CR. Se a lista estiver vazia, falta `seed:cr` (ou a API está dormindo: recarregue). **Plano B:** mostrar o resultado dos mesmos cenários nos testes (`npm test`, arquivo `cenarios.test.ts`): cada decisão está explicada em asserções.
 
@@ -37,7 +37,7 @@ Entre como `atendente@farol.teste` → **Fila** (BH). Procure as OS que começam
 **Nova solicitação** → município BH → endereço qualquer → **UC `2010002`** (a do hospital da CR-01 B) → aparece **"Possível duplicidade (sugestão, nunca automática)"** com a CR-01 B e o motivo "mesma UC".
 
 - **Dizer:** "O sistema só sugere; quem decide é o atendente. Mesma rua sozinha não basta. Posso vincular à OS existente (nenhuma OS nova nasce e ela é reclassificada) ou confirmar que não é duplicada."
-- Clique em **Vincular a esta OS**. Mostre "Nenhuma OS nova foi criada".
+- Clique em **Vincular** na linha da CR-01 B. Mostre "Nenhuma OS nova foi criada".
 - Extra (20 s): **Escolher o ponto no mapa** → clique → latitude/longitude preenchidas, círculo de 300 m.
 
 **Pode dar errado:** sem sugestão = a CR-01 B foi aberta há mais de 24 h (rode o seed no dia) ou a UC foi digitada errada. **Plano B:** registre uma OS com UC `3999001` e, em seguida, outra com a mesma UC.
@@ -56,7 +56,7 @@ Entre como `despachante@farol.teste` → OS **CR-04 A** → aba **Despacho**.
 
 ## 4. O mapa e o raio de 300 m (1 min) — **Supervisor**
 
-`supervisor@farol.teste` → **Mapa**. Cor = prioridade (as mesmas das pílulas). Selecione **CR-01 B** na lista (funciona só com teclado) → círculo de **300 m** (o mesmo raio da duplicidade), distância **em linha reta** até cada equipe, "Outras OS dentro de 300 m". Desmarque **Mostrar equipes**. Troque para **Todas as cidades** (só o supervisor).
+`supervisor@farol.teste` → **Mapa**. Cor e rótulo = prioridade (as mesmas das etiquetas da fila). Selecione **CR-01 B** na lista (funciona só com teclado) → círculo de **300 m** (o mesmo raio da duplicidade), distância **em linha reta** até cada equipe, "Outras OS dentro de 300 m". Desmarque **Mostrar equipes**. Troque para **Todas as cidades** (só o supervisor).
 
 - **Dizer:** "Distância em linha reta, sem rota nem tempo: não prometemos o que não calculamos. OS sem coordenadas ficam na lista com aviso de *localização aproximada* e entram *Em triagem*."
 
@@ -106,7 +106,7 @@ Entre como Administrador: ele vê tudo, inclusive o escopo **Global** da pontua�
 | 2 | Atendente | Nova solicitação (duplicidade, mapa) |
 | 3 | Despachante · Equipe de campo | OS → Despacho |
 | 4 | Supervisor | Mapa |
-| 5 | Supervisor / Administrador | Precedência (leitura) |
+| 5 | Supervisor / Administrador | Precedência (leitura; edição pelo Administrador) |
 | 6 | Usuário Chave | Pontuação |
 | 7 | Supervisor | OS → Status → Reabrir |
 | 8 | Administrador | Pontuação (escopo Global) |

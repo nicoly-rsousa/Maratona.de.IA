@@ -26,7 +26,7 @@ Vercel e banco no Supabase.
 - Imutabilidade (resultados_prioridade, versões publicadas, auditoria, eventos_os, solicitacoes),
   índices únicos (um despacho ativo por OS, um rascunho por escopo, numeração por cidade/ano),
   constraints e a ordem de trava nas funções (risco de deadlock).
-- Migrations: ordem 0001 a 0005, idempotência, e se o banco real corresponde ao que está no
+- Migrations: ordem 0001 a 0007, idempotência, e se o banco real corresponde ao que está no
   repositório. Aponte qualquer objeto no banco que não esteja em migration.
 - Configuração do Auth que precisa ser conferida pelo dono no painel (cadastro público desligado,
   confirmação de e-mail, política de senha, URLs de redirecionamento, SMTP próprio, expiração de
@@ -56,7 +56,7 @@ Vercel e banco no Supabase.
   (rel="noopener"), cabeçalhos de segurança e CSP no Next, imagens e tiles de terceiros (OSM).
 - Variáveis de ambiente de build, next.config (transpilePackages de @farol/shared), erros em
   produção sem stack, páginas de erro 404/500, tema, acessibilidade básica, responsividade.
-- Diferenças em relação ao protótipo docs/farol.html (resumo; o detalhe está em REVISAO-FRONT.md
+- Diferenças em relação ao protótipo docs/farol.html (resumo; o detalhe está em REVISAO-FRONT.MD
   se existir).
 - Desempenho: tamanho do bundle, carregamento do Leaflet só no cliente, refetch a cada 60 s.
 
