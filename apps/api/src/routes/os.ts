@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  NovaOSSchema, TIPOS_MANUTENCAO, VincularSchema, montarHistorico, ordenarFila, perguntasDaVersao, sugerirDuplicidade, validarFatos,
-  type CandidataDuplicidade, type DetalheOS, type ItemFila, type LinhaResultado, type SolicitacaoResumo,
+  NovaOSSchema, TIPOS_MANUTENCAO, VincularSchema, montarHistorico, ordenarFila, perguntasDaVersao, processarImportacaoCsv, sugerirDuplicidade, validarFatos,
+  type DetalheOS, type ItemFila, type LinhaResultado, type SolicitacaoResumo,
 } from "@farol/shared";
 import { auditar, exigir, veCidade } from "../auth.js";
 import { carregarPublicadas, regrasEmVigor, versaoVigente } from "../config.js";
@@ -10,7 +10,7 @@ import { db } from "../db.js";
 import { env } from "../env.js";
 import { reclassificarOS } from "../jobs/reclassificar.js";
 import { despachosDaOS, ehAtivo, eventosDaOS, osDaEquipe } from "../services/despacho.js";
-import { ErroDeEntrada, criarOS, qualificacoesDaCidade } from "../services/os.js";
+import { ErroDeEntrada, candidatasAbertasDaCidade, criarOS, qualificacoesDaCidade } from "../services/os.js";
 
 /** Texto único para o front (o corpo `erro` é sempre string). */
 const mensagens = (e: z.ZodError) => e.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ` : "") + i.message).join(" ");
@@ -134,21 +134,50 @@ export async function rotasOS(app: FastifyInstance) {
     const c = q.data;
     if (!(await exigir(req, reply, "nova", c.cidade))) return;
 
-    const desde = new Date(Date.now() - env.DUP_JANELA_H * 3_600_000).toISOString();
-    const { data, error } = await db
-      .from("ordens_servico")
-      .select("id, numero, cidade_id, endereco, status, codigo, tipo, lat, lng, transformador, uc, conjunto, aberta_em")
-      .eq("cidade_id", c.cidade)
-      .not("status", "in", "(Concluída,Cancelada)")
-      .gte("aberta_em", desde)
-      .limit(1000);
-    if (error) return reply.code(500).send({ erro: error.message });
-
-    const candidatas: CandidataDuplicidade[] = (data ?? []).map((o) => ({
-      id: o.id, numero: o.numero, cidade: o.cidade_id, endereco: o.endereco, status: o.status, codigo: o.codigo, tipo: o.tipo,
-      lat: o.lat, lng: o.lng, transformador: o.transformador, uc: o.uc, conjunto: o.conjunto, abertaEmMs: Date.parse(o.aberta_em),
-    }));
+    const candidatas = await candidatasAbertasDaCidade(c.cidade);
     return sugerirDuplicidade({ ...c }, candidatas, Date.now(), { raioM: env.DUP_RAIO_M, janelaH: env.DUP_JANELA_H });
+  });
+
+  // Importação de planilha (CSV) em "Nova solicitação": só prévia, nada é gravado (§11, duplicidade nunca é automática).
+  app.post("/os/importar/preview", async (req, reply) => {
+    const body = z.object({ cidade: z.string().min(2), csv: z.string().min(1, "Arquivo vazio.") }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ erro: mensagens(body.error) });
+    const { cidade, csv } = body.data;
+    if (!(await exigir(req, reply, "nova", cidade))) return;
+
+    try {
+      const candidatas = await candidatasAbertasDaCidade(cidade);
+      const resultado = processarImportacaoCsv(csv, candidatas, Date.now(), { raioM: env.DUP_RAIO_M, janelaH: env.DUP_JANELA_H }, cidade);
+      await auditar(req.ator, "os.importar_preview", { cidade, detalhe: { totalLinhas: resultado.totalLinhas, totalValidas: resultado.totalValidas, totalComErro: resultado.totalComErro } });
+      return resultado;
+    } catch (e) {
+      req.log.error(e);
+      return reply.code(500).send({ erro: (e as Error).message });
+    }
+  });
+
+  // Confirma a importação: cria uma OS por linha escolhida pelo atendente (as que ele revisou e não pulou).
+  app.post("/os/importar/confirmar", async (req, reply) => {
+    const body = z
+      .object({ cidade: z.string().min(2), itens: z.array(z.object({ linha: z.number().int().positive(), dados: NovaOSSchema })).min(1).max(500) })
+      .safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ erro: mensagens(body.error) });
+    const { cidade, itens } = body.data;
+    if (!(await exigir(req, reply, "nova", cidade))) return;
+
+    const criadas: { linha: number; numero: string; id: string }[] = [];
+    const erros: { linha: number; mensagem: string }[] = [];
+    for (const item of itens) {
+      if (item.dados.cidade !== cidade) { erros.push({ linha: item.linha, mensagem: "Linha de outra cidade; não corresponde à cidade selecionada para a importação." }); continue; }
+      try {
+        const { os } = await criarOS(item.dados, { usuario: req.ator!.id });
+        criadas.push({ linha: item.linha, numero: os.numero, id: os.id });
+      } catch (e) {
+        erros.push({ linha: item.linha, mensagem: e instanceof ErroDeEntrada ? e.message : (e as Error).message });
+      }
+    }
+    await auditar(req.ator, "os.importar_confirmar", { cidade, detalhe: { total: itens.length, criadas: criadas.length, erros: erros.length } });
+    return reply.code(criadas.length ? 201 : 200).send({ criadas, erros });
   });
 
   // Nova OS: calcula prioridade e grava OS + resultado imutável (mesmo caminho do seed:os).

@@ -210,6 +210,9 @@ export default function NovaSolicitacaoPage() {
   return (
     <>
       <h2>Nova solicitação</h2>
+      <p className="mu">
+        Tem várias para registrar de uma vez? <Link href="/nova/importar" className="text-ac underline">Importar de um arquivo CSV</Link>.
+      </p>
       <div className="box">
         <div className="row">
           <Campo id="n_cid" rotulo="Município">

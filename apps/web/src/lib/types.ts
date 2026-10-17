@@ -60,3 +60,18 @@ export interface Vinculada {
 }
 
 export type Sugestao = SugestaoDuplicidade;
+
+/** Resposta de POST /os/importar/confirmar: uma OS por linha escolhida (as que falharem não derrubam as outras). */
+export interface ImportacaoCriada {
+  linha: number;
+  numero: string;
+  id: string;
+}
+export interface ImportacaoErroLinha {
+  linha: number;
+  mensagem: string;
+}
+export interface ImportacaoConfirmada {
+  criadas: ImportacaoCriada[];
+  erros: ImportacaoErroLinha[];
+}
