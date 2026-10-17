@@ -1,0 +1,46 @@
+/* rule-card — ficha de uma regra de precedência (camada A) no editor */
+.rule-card__fields {
+  display: grid;
+  grid-template-columns: auto minmax(200px, 1fr) 120px 180px auto;
+  gap: var(--space-3) var(--space-4);
+  align-items: end;
+}
+
+@media (max-width: 1023px) {
+  .rule-card__fields {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+.rule-card__id {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+}
+
+.rule-card__condition {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+@media (max-width: 767px) {
+  .rule-card__condition {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rule-card__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+}
+
+.rule-card__missing {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}

@@ -1,0 +1,14 @@
+/* icon — ícones Material (SVG) alinhados ao texto; o tamanho acompanha a fonte do contexto. */
+.icon {
+  flex: none;
+  width: 1.25em;
+  height: 1.25em;
+  font-size: inherit;
+  fill: currentColor;
+  vertical-align: -0.25em;
+}
+
+.icon--lg {
+  width: 2em;
+  height: 2em;
+}

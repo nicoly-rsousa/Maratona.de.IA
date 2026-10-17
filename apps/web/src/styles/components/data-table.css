@@ -1,0 +1,78 @@
+/*
+ * data-table — tabela de dados com rolagem horizontal contida (a página nunca rola de lado).
+ * Exceção documentada ao BEM: th/td são estilizados por descendência do bloco, porque toda célula é th/td;
+ * variações usam modificadores (__cell--num, __cell--wrap, __row--group…).
+ */
+.data-table {
+  overflow-x: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.data-table__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table__table--compact {
+  width: auto;
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.data-table thead th {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.data-table tbody th {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.data-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.data-table__row--interactive:hover {
+  background: var(--color-surface-alt);
+}
+
+.data-table__row--group > * {
+  background: var(--color-surface-sunken);
+}
+
+.data-table__row--muted {
+  opacity: 0.65;
+}
+
+.data-table__cell--num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table__cell--center {
+  text-align: center !important;
+}
+
+.data-table__cell--wrap {
+  min-width: 200px;
+  max-width: 420px;
+  white-space: normal !important;
+}
+
+.data-table__cell--actions {
+  text-align: right !important;
+}

@@ -1,0 +1,27 @@
+/* badge — prioridade. O texto (nome do código) sempre acompanha a cor. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.badge--emergente { background: var(--color-priority-emergente); color: var(--color-on-priority); }
+.badge--urgente { background: var(--color-priority-urgente); color: var(--color-on-priority); }
+.badge--alta { background: var(--color-priority-alta); color: var(--color-on-priority); }
+.badge--media { background: var(--color-priority-media); color: var(--color-on-priority); }
+.badge--baixa { background: var(--color-priority-baixa); color: var(--color-on-priority); }
+
+.badge--block {
+  display: flex;
+  min-width: 0;
+}

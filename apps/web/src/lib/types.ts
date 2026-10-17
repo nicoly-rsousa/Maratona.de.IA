@@ -1,17 +1,9 @@
-import type { Pergunta, SugestaoDuplicidade } from "@farol/shared";
+import type { Ator as AtorBase, Pergunta, SugestaoDuplicidade } from "@farol/shared";
 
 /** Formatos devolvidos pela API (apps/api). O detalhe da OS usa DetalheOS de @farol/shared. */
 
-export type Perfil = "Administrador" | "Atendente" | "Despachante" | "Supervisor" | "Equipe de campo" | "Usuário Chave";
-
-export interface Ator {
-  id: string;
-  nome: string;
-  perfil: Perfil;
-  todasCidades: boolean;
-  cidades: string[];
-  /** só a Equipe de campo: a equipe cujas OS ela vê */
-  equipeId: string | null;
+/** GET /me: o ator com as permissões do perfil. */
+export interface Ator extends AtorBase {
   /** permissões do perfil (nova, consultar, status, …); a API continua sendo quem decide */
   permissoes: string[];
 }

@@ -2,11 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import CheckCircleOutline from "@mui/icons-material/CheckCircleOutlineOutlined";
+import Refresh from "@mui/icons-material/Refresh";
+import Undo from "@mui/icons-material/Undo";
+import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import { textoCondicoes, type Regra, type RespostaPrever, type RespostaRegras, type RespostaSalvarRegras } from "@farol/shared";
 import { api, ApiError, apiPost, apiPut } from "@/lib/api";
 import { dataHora } from "@/lib/format";
-import { Carregando, ErroAcao, ErroApi, Pill } from "@/components/ui";
+import { Alerta, ErroAcao } from "@/components/alerta";
+import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import { EstadoConsulta, EstadoVazio } from "@/components/estados";
+import { Icone } from "@/components/icone";
 import { JustificativaDialog } from "@/components/justificativa-dialog";
+import { Pill } from "@/components/prioridade";
+import { Tabela } from "@/components/tabela";
 import { EditorRegras } from "./editor";
 import { Impacto } from "./impacto";
 
@@ -58,123 +67,141 @@ export default function PrecedenciaPage() {
     setRascunho(null); setPrevia(null); setGravada(null); prever.reset(); salvar.reset();
   }
 
-  if (q.isPending) return <><h2>Regras de precedência (camada A)</h2><Carregando texto="Carregando as regras…" /></>;
-  if (q.isError) return <><h2>Regras de precedência (camada A)</h2><ErroApi erro={q.error} titulo="Não foi possível carregar as regras de precedência." onRetry={() => q.refetch()} /></>;
-  const d = q.data;
-
   return (
     <>
-      <h2>Regras de precedência (camada A)</h2>
-      <p className="mu">
-        Cada regra é um E lógico de condições e define um nível de precedência (1–10) e uma prioridade mínima. Valores demonstrativos.
-        Vale para todas as cidades. Versão em vigor: <b className="m">v{d.versao}</b>.
-      </p>
+      <CabecalhoPagina
+        titulo="Regras de precedência (camada A)"
+        descricao={<>
+          Cada regra é um E lógico de condições e define um nível de precedência (1–10) e uma prioridade mínima. Vale para todas as cidades. Valores demonstrativos.
+          {dados && <> Versão em vigor: <b className="font-mono">v{dados.versao}</b>.</>}
+        </>}
+      />
+      <EstadoConsulta consulta={q} carregando="Carregando as regras…" erro="Não foi possível carregar as regras de precedência.">
+        {(d) => (
+          <>
+            {gravada && (
+              <Alerta tipo="success" role="status" titulo={`Versão v${gravada.numero} gravada.`}>
+                As OS abertas estão sendo reclassificadas: a fila reflete a mudança em até 1 minuto.
+                {gravada.alertas.map((a) => <div key={a} className="text-muted">Alerta: {a}</div>)}
+              </Alerta>
+            )}
 
-      {gravada && (
-        <div className="okm" role="status">
-          Versão <b className="m">v{gravada.numero}</b> gravada. As OS abertas estão sendo reclassificadas: a fila reflete a mudança em até 1 minuto.
-          {gravada.alertas.map((a) => <div key={a} className="mu">Alerta: {a}</div>)}
-        </div>
-      )}
+            {!d.editavel ? (
+              <section className="page__section" aria-labelledby="prec-regras">
+                <h2 id="prec-regras" className="page__section-title">Regras em vigor</h2>
+                <p className="text-muted">Somente o Administrador altera as regras. Cada alteração exige justificativa e gera uma nova versão.</p>
+                <TabelaLeitura regras={d.regras} />
+              </section>
+            ) : (
+              <section className="page__section" aria-labelledby="prec-editar">
+                <h2 id="prec-editar" className="page__section-title">Editar regras</h2>
+                {d.criterios.length === 0 && (
+                  <Alerta tipo="warning" role="alert">Não há versão de pontuação global vigente: sem ela não dá para validar condições, então a edição está desligada.</Alerta>
+                )}
+                <p className="text-muted">
+                  Edite, pré-visualize o impacto nas OS abertas e só então confirme com a justificativa. Nada é gravado antes disso, e a versão
+                  anterior nunca é alterada. A nova versão <b>reclassifica as OS abertas</b>.
+                </p>
 
-      {!d.editavel ? (
-        <>
-          <p className="mu">Somente o Administrador altera as regras. Cada alteração exige justificativa e gera uma nova versão.</p>
-          <TabelaLeitura regras={d.regras} />
-        </>
-      ) : (
-        <>
-          {d.criterios.length === 0 && (
-            <div className="warn" role="alert">Não há versão de pontuação global vigente: sem ela não dá para validar condições, então a edição está desligada.</div>
-          )}
-          <p className="mu">
-            Edite, pré-visualize o impacto nas OS abertas e só então confirme com a justificativa. Nada é gravado antes disso, e a versão
-            anterior nunca é alterada. A nova versão <b>reclassifica as OS abertas</b>.
-          </p>
+                <EditorRegras regras={regras} criterios={d.criterios} onChange={editar} desabilitado={d.criterios.length === 0 || salvar.isPending} />
 
-          <EditorRegras regras={regras} criterios={d.criterios} onChange={editar} desabilitado={d.criterios.length === 0 || salvar.isPending} />
+                <div className="button-group">
+                  <button type="button" className="button" disabled={!alterado || prever.isPending || salvar.isPending} onClick={() => prever.mutate()}>
+                    <Icone de={VisibilityOutlined} />{prever.isPending ? "Calculando o impacto…" : "Pré-visualizar"}
+                  </button>
+                  <button
+                    type="button" className="button button--primary" disabled={!podeConfirmar || salvar.isPending}
+                    aria-describedby="prec-estado" onClick={() => setDialogo(true)}
+                  >
+                    <Icone de={CheckCircleOutline} />{salvar.isPending ? "Gravando…" : `Confirmar (gera a v${d.versao + 1})`}
+                  </button>
+                  <button type="button" className="button" disabled={!alterado || salvar.isPending} onClick={descartar}>
+                    <Icone de={Undo} />Desfazer alterações
+                  </button>
+                  <span id="prec-estado" className="button-group__note">
+                    {!alterado ? "Nenhuma alteração." : !pv ? "Pré-visualize o rascunho atual antes de confirmar." : null}
+                  </span>
+                </div>
 
-          <p>
-            <button type="button" disabled={!alterado || prever.isPending || salvar.isPending} onClick={() => prever.mutate()}>
-              {prever.isPending ? "Calculando o impacto…" : "Pré-visualizar"}
-            </button>{" "}
-            <button type="button" className="pr" disabled={!podeConfirmar || salvar.isPending} onClick={() => setDialogo(true)}>
-              {salvar.isPending ? "Gravando…" : `Confirmar (gera a v${d.versao + 1})`}
-            </button>{" "}
-            <button type="button" disabled={!alterado || salvar.isPending} onClick={descartar}>Desfazer alterações</button>
-            {!alterado && <span className="mu"> Nenhuma alteração.</span>}
-            {alterado && !pv && <span className="mu"> Pré-visualize o rascunho atual antes de confirmar.</span>}
-          </p>
+                {prever.isError && <ErroAcao erro={prever.error} />}
+                {pv && pv.erros.length > 0 && (
+                  <Alerta tipo="error" role="alert" titulo="Corrija antes de continuar">
+                    <ul className="list-disc pl-5">{pv.erros.map((e) => <li key={e}>{e}</li>)}</ul>
+                  </Alerta>
+                )}
+                {pv && pv.alertas.map((a) => <Alerta key={a} tipo="warning" role="status" titulo="Alerta">{a}</Alerta>)}
+                {pv?.impacto && <Impacto impacto={pv.impacto} />}
 
-          {prever.isError && <ErroAcao erro={prever.error} />}
-          {pv && pv.erros.length > 0 && (
-            <div className="err" role="alert"><b>Corrija antes de continuar:</b>{pv.erros.map((e) => <div key={e}>{e}</div>)}</div>
-          )}
-          {pv && pv.alertas.map((a) => <div key={a} className="warn" role="status"><b>Alerta:</b> {a}</div>)}
-          {pv?.impacto && <Impacto impacto={pv.impacto} />}
+                {salvar.isError && (
+                  <>
+                    <ErroAcao erro={salvar.error} />
+                    {salvar.error instanceof ApiError && salvar.error.detalhe.erros?.map((e) => <Alerta key={e} tipo="error">{e}</Alerta>)}
+                    {salvar.error instanceof ApiError && salvar.error.status === 409 && (
+                      <div className="button-group">
+                        <button type="button" className="button" onClick={() => { descartar(); q.refetch(); }}>
+                          <Icone de={Refresh} />Recarregar as regras (descarta o rascunho)
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
 
-          {salvar.isError && (
-            <>
-              <ErroAcao erro={salvar.error} />
-              {salvar.error instanceof ApiError && salvar.error.detalhe.erros?.map((e) => <div key={e} className="err">{e}</div>)}
-              {salvar.error instanceof ApiError && salvar.error.status === 409 && (
-                <p><button type="button" onClick={() => { descartar(); q.refetch(); }}>Recarregar as regras (descarta o rascunho)</button></p>
-              )}
-            </>
-          )}
+                <JustificativaDialog
+                  aberto={dialogo}
+                  titulo={`Justificativa da alteração das regras de precedência (gera a v${d.versao + 1} e reclassifica as OS abertas)`}
+                  onConfirmar={(j) => { setDialogo(false); salvar.mutate(j); }}
+                  onCancelar={() => setDialogo(false)}
+                />
+              </section>
+            )}
 
-          <JustificativaDialog
-            aberto={dialogo}
-            titulo={`Justificativa da alteração das regras de precedência (gera a v${d.versao + 1} e reclassifica as OS abertas)`}
-            onConfirmar={(j) => { setDialogo(false); salvar.mutate(j); }}
-            onCancelar={() => setDialogo(false)}
-          />
-        </>
-      )}
-
-      <h3>Versões</h3>
-      <div className="tw">
-        <table className="tabela">
-          <thead><tr><th>Versão</th><th>Gravada em</th><th>Por</th><th>Regras</th><th>Justificativa</th></tr></thead>
-          <tbody>
-            {d.versoes.map((v) => (
-              <tr key={v.numero} className="r">
-                <td className="m">v{v.numero}{v.vigente && <span className="mu"> (em vigor)</span>}</td>
-                <td className="m">{dataHora(v.criadoEm)}</td>
-                <td>{v.autor ?? "—"}</td>
-                <td className="m">{v.quantidade}</td>
-                <td className="max-w-[420px] whitespace-normal">{v.justificativa}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            <section className="page__section" aria-labelledby="prec-versoes">
+              <h2 id="prec-versoes" className="page__section-title">Versões</h2>
+              <Tabela legenda="Versões das regras de precedência">
+                <thead><tr><th scope="col">Versão</th><th scope="col">Gravada em</th><th scope="col">Por</th><th scope="col">Regras</th><th scope="col">Justificativa</th></tr></thead>
+                <tbody>
+                  {d.versoes.map((v) => (
+                    <tr key={v.numero} className="data-table__row--interactive">
+                      <td className="data-table__cell--num">v{v.numero}{v.vigente && <span className="text-muted"> (em vigor)</span>}</td>
+                      <td className="data-table__cell--num">{dataHora(v.criadoEm)}</td>
+                      <td>{v.autor ?? "—"}</td>
+                      <td className="data-table__cell--num">{v.quantidade}</td>
+                      <td className="data-table__cell--wrap">{v.justificativa}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Tabela>
+            </section>
+          </>
+        )}
+      </EstadoConsulta>
     </>
   );
 }
 
 /** Quem não é Administrador vê as regras como antes: só leitura. */
 function TabelaLeitura({ regras }: { regras: RespostaRegras["regras"] }) {
-  if (regras.length === 0) return <p className="mu">Nenhuma regra cadastrada.</p>;
+  if (regras.length === 0) return <EstadoVazio>Nenhuma regra cadastrada.</EstadoVazio>;
   return (
-    <div className="tw">
-      <table className="tabela">
-        <thead>
-          <tr><th>Ativa</th><th>Regra</th><th>Condição</th><th>Nível</th><th>Prioridade mínima</th><th>Versão</th></tr>
-        </thead>
-        <tbody>
-          {regras.map((r) => (
-            <tr key={r.id} className="r">
-              <td><input type="checkbox" checked={r.ativa} disabled aria-label={`${r.nome}: ${r.ativa ? "ativa" : "inativa"} (somente leitura)`} /></td>
-              <td><b>{r.nome}</b> <span className="mu m">{r.id}</span></td>
-              <td className="whitespace-normal">{textoCondicoes(r.condicoes)}</td>
-              <td className="m">{r.nivel}</td>
-              <td><Pill codigo={r.prioridadeMinima} /></td>
-              <td className="m" title={`atualizada em ${dataHora(r.atualizadoEm)}`}>v{r.versao}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Tabela legenda="Regras de precedência (somente leitura)">
+      <thead>
+        <tr>
+          <th scope="col">Ativa</th><th scope="col">Regra</th><th scope="col">Condição</th><th scope="col">Nível</th>
+          <th scope="col">Prioridade mínima</th><th scope="col">Versão</th>
+        </tr>
+      </thead>
+      <tbody>
+        {regras.map((r) => (
+          <tr key={r.id} className="data-table__row--interactive">
+            <td>{r.ativa ? "Sim" : "Não"}</td>
+            <td><b>{r.nome}</b> <span className="font-mono text-muted">{r.id}</span></td>
+            <td className="data-table__cell--wrap">{textoCondicoes(r.condicoes)}</td>
+            <td className="data-table__cell--num">{r.nivel}</td>
+            <td><Pill codigo={r.prioridadeMinima} /></td>
+            <td className="data-table__cell--num">v{r.versao} <span className="text-muted">· {dataHora(r.atualizadoEm)}</span></td>
+          </tr>
+        ))}
+      </tbody>
+    </Tabela>
   );
 }

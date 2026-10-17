@@ -1,0 +1,156 @@
+/*
+ * Design tokens do Farol — fonte única de cores, tipografia, espaços, raios, sombras e transições.
+ * Paleta-base: Homework (lospec.com/palette-list/homework): #E1D8D4 · #878C9D · #45568D · #12121B.
+ * Tons derivados existem só quando a cor original não atinge o contraste WCAG 2.2 AA na combinação
+ * (ver docs/DESIGN-SYSTEM.md e `npm run check:contrast`).
+ * Tema claro é o padrão; `html[data-t="d"]` liga o escuro.
+ * Breakpoints (não cabem em custom properties de media query): sm 640px · md 768px · lg 1024px — os mesmos do tailwind.config.ts.
+ */
+:root {
+  /* ── Superfícies ── */
+  --color-bg: #f4f0ee;              /* tint de #E1D8D4 */
+  --color-surface: #ffffff;
+  --color-surface-alt: #ece6e3;     /* cabeçalho de tabela, hover */
+  --color-surface-sunken: #e1d8d4;  /* Homework: blocos de destaque e grupos */
+
+  /* ── Texto ── */
+  --color-text: #12121b;            /* Homework */
+  --color-text-muted: #585c6c;      /* derivado de #878C9D (que só tem 2,4:1 sobre o claro) */
+  --color-text-inverse: #ffffff;
+
+  /* ── Bordas ── */
+  --color-border-subtle: #ddd5d1;   /* divisórias decorativas (linhas de tabela) */
+  --color-border: #878c9d;          /* Homework: contorno de cards */
+  --color-border-strong: #6b7080;   /* contorno de controles: ≥ 3:1 sobre as superfícies */
+
+  /* ── Marca / ação primária ── */
+  --color-primary: #45568d;         /* Homework */
+  --color-primary-hover: #36446f;
+  --color-primary-soft: #e3e6f1;    /* fundo de item selecionado */
+  --color-on-primary: #ffffff;
+  --color-focus: #45568d;
+
+  /* ── Semânticas (texto fg sobre bg ≥ 4,5:1) ── */
+  --color-danger: #9b2c2c;
+  --color-danger-bg: #fbeaea;
+  --color-danger-border: #c4423a;
+  --color-warning: #7a4d00;
+  --color-warning-bg: #fbf1dc;
+  --color-warning-border: #b07a12;
+  --color-success: #1f6b3e;
+  --color-success-bg: #e5f3ea;
+  --color-success-border: #2f8a55;
+  --color-info: #36446f;
+  --color-info-bg: #e6e9f3;
+  --color-info-border: #45568d;
+
+  /* ── Prioridade (convenção funcional preservada do protótipo; o nome sempre acompanha a cor) ── */
+  --color-priority-emergente: #c4005f;
+  --color-priority-urgente: #c93a14;
+  --color-priority-alta: #9a6a00;
+  --color-priority-media: #1f64c8;
+  --color-priority-baixa: #4c675a;
+  --color-on-priority: #ffffff;
+
+  /* ── Mapa ── */
+  --color-map-marker-stroke: #ffffff;
+  --color-map-team: #12121b;
+
+  /* ── Tipografia ── */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --line-height-tight: 1.25;
+  --line-height-base: 1.5;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ── Espaços (escala de 4px) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ── Raios, sombras, dimensões ── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 999px;
+  --shadow-sm: 0 1px 2px rgb(18 18 27 / 0.08);
+  --shadow-md: 0 4px 16px rgb(18 18 27 / 0.12);
+  --shadow-lg: 0 12px 32px rgb(18 18 27 / 0.24);
+  --control-height: 36px;
+  --control-height-sm: 30px;
+  --nav-width: 216px;
+  --header-height: 56px;
+
+  /* ── Movimento ── */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+
+  /* ── Camadas ── */
+  --z-header: 20;
+  --z-skip-link: 50;
+
+  color-scheme: light;
+}
+
+:root[data-t="d"] {
+  --color-bg: #12121b;              /* Homework */
+  --color-surface: #1c1c28;
+  --color-surface-alt: #262636;
+  --color-surface-sunken: #171722;
+
+  --color-text: #e1d8d4;            /* Homework */
+  --color-text-muted: #9a9fb0;      /* derivado de #878C9D */
+  --color-text-inverse: #12121b;
+
+  --color-border-subtle: #2e2f40;
+  --color-border: #4a4d60;
+  --color-border-strong: #878c9d;   /* Homework */
+
+  --color-primary: #8e9fd6;         /* derivado de #45568D (que só tem 2,6:1 sobre o escuro) */
+  --color-primary-hover: #a3b1e0;
+  --color-primary-soft: #2a3150;
+  --color-on-primary: #12121b;
+  --color-focus: #a3b1e0;
+
+  --color-danger: #f2a19a;
+  --color-danger-bg: #3a1f22;
+  --color-danger-border: #d0675e;
+  --color-warning: #f0c46a;
+  --color-warning-bg: #33291a;
+  --color-warning-border: #c99a3a;
+  --color-success: #8fd1a6;
+  --color-success-bg: #1b3326;
+  --color-success-border: #4fa36f;
+  --color-info: #a3b1e0;
+  --color-info-bg: #232a45;
+  --color-info-border: #8e9fd6;
+
+  --color-priority-emergente: #ff3d8b;
+  --color-priority-urgente: #ff5a3c;
+  --color-priority-alta: #f2a900;
+  --color-priority-media: #4f9cff;
+  --color-priority-baixa: #7d9a8c;
+  --color-on-priority: #12121b;
+
+  --color-map-marker-stroke: #12121b;
+  --color-map-team: #e1d8d4;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 16px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.6);
+
+  color-scheme: dark;
+}

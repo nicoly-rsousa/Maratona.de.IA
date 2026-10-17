@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { CODIGOS, type ImpactoRegras } from "@farol/shared";
-import { Pill } from "@/components/ui";
+import { Alerta } from "@/components/alerta";
+import { LinkExterno } from "@/components/link-externo";
+import { Pill } from "@/components/prioridade";
+import { Tabela } from "@/components/tabela";
 
 const LIMITE = 200;
 
@@ -10,62 +12,58 @@ const LIMITE = 200;
 export function Impacto({ impacto: i }: { impacto: ImpactoRegras }) {
   const mostradas = i.mudancas.slice(0, LIMITE);
   return (
-    <div className="box" aria-label="Impacto nas OS abertas">
-      <h3 className="mt-0">Impacto nas OS abertas</h3>
+    <section className="card" aria-labelledby="impacto-titulo">
+      <h3 id="impacto-titulo" className="card__title">Impacto nas OS abertas</h3>
       <p>
-        <b className="m">{i.mudaram}</b> de <b className="m">{i.total}</b> OS abertas mudariam
+        <b className="font-mono">{i.mudaram}</b> de <b className="font-mono">{i.total}</b> OS abertas mudariam
         {i.mudaram > 0 && (
           <>
-            : <b className="m">{i.codigoMudou}</b> de código (<span className="m">{i.sobemCodigo}</span> sobem, <span className="m">{i.descemCodigo}</span> descem)
-            e <b className="m">{i.nivelMudou}</b> de nível <span className="mu">(uma OS pode mudar nos dois)</span>
+            : <b className="font-mono">{i.codigoMudou}</b> de código (<span className="font-mono">{i.sobemCodigo}</span> sobem, <span className="font-mono">{i.descemCodigo}</span> descem)
+            e <b className="font-mono">{i.nivelMudou}</b> de nível <span className="text-muted">(uma OS pode mudar nos dois)</span>
           </>
         )}
         .
       </p>
       {i.semVersao > 0 && (
-        <div className="warn">{i.semVersao} OS sem versão de pontuação aplicável ficaram fora da previsão.</div>
+        <Alerta tipo="warning">{i.semVersao} OS sem versão de pontuação aplicável ficaram fora da previsão.</Alerta>
       )}
 
-      <div className="tw">
-        <table className="tabela">
-          <thead>
-            <tr><th>OS por código</th>{CODIGOS.map((_, cod) => <th key={cod}><Pill codigo={cod} /></th>)}</tr>
-          </thead>
-          <tbody>
-            <tr><th scope="row">Antes</th>{i.distribuicao.antes.map((n, cod) => <td key={cod} className="m">{n}</td>)}</tr>
-            <tr><th scope="row">Depois</th>{i.distribuicao.depois.map((n, cod) => (
-              <td key={cod} className="m">{n}{n !== i.distribuicao.antes[cod] && <span className="mu"> ({n - i.distribuicao.antes[cod]! > 0 ? "+" : ""}{n - i.distribuicao.antes[cod]!})</span>}</td>
-            ))}</tr>
-          </tbody>
-        </table>
-      </div>
+      <Tabela legenda="Distribuição das OS abertas por código, antes e depois" compacta>
+        <thead>
+          <tr><th scope="col">OS por código</th>{CODIGOS.map((_, cod) => <th key={cod} scope="col"><Pill codigo={cod} /></th>)}</tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Antes</th>{i.distribuicao.antes.map((n, cod) => <td key={cod} className="data-table__cell--num">{n}</td>)}</tr>
+          <tr><th scope="row">Depois</th>{i.distribuicao.depois.map((n, cod) => (
+            <td key={cod} className="data-table__cell--num">{n}{n !== i.distribuicao.antes[cod] && <span className="text-muted"> ({n - i.distribuicao.antes[cod]! > 0 ? "+" : ""}{n - i.distribuicao.antes[cod]!})</span>}</td>
+          ))}</tr>
+        </tbody>
+      </Tabela>
 
       {i.mudaram === 0 ? (
-        <p className="mu">Nenhuma OS aberta muda de código ou nível. A nova versão vale para as OS novas.</p>
+        <p className="text-muted">Nenhuma OS aberta muda de código ou nível. A nova versão vale para as OS novas.</p>
       ) : (
         <>
-          <h3>OS que mudam</h3>
-          <div className="tw">
-            <table className="tabela">
-              <thead>
-                <tr><th>OS</th><th>Cidade</th><th>Antes</th><th>Depois</th><th>Regras aplicadas (antes → depois)</th></tr>
-              </thead>
-              <tbody>
-                {mostradas.map((m) => (
-                  <tr key={m.osId} className="r">
-                    <td><Link href={`/os/${m.osId}`} className="os-bt m" target="_blank">{m.numero}</Link></td>
-                    <td>{m.cidade}</td>
-                    <td><Pill codigo={m.antes.codigo} /> <span className="m">nível {m.antes.nivel}</span></td>
-                    <td><Pill codigo={m.depois.codigo} /> <span className="m">nível {m.depois.nivel}</span></td>
-                    <td className="m whitespace-normal">{m.antes.regras.join(", ") || "—"} → {m.depois.regras.join(", ") || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {i.mudancas.length > LIMITE && <p className="mu">Mostrando as primeiras {LIMITE} de {i.mudancas.length} OS que mudam.</p>}
+          <h4 className="page__section-title">OS que mudam</h4>
+          <Tabela legenda="OS que mudam de código ou nível">
+            <thead>
+              <tr><th scope="col">OS</th><th scope="col">Cidade</th><th scope="col">Antes</th><th scope="col">Depois</th><th scope="col">Regras aplicadas (antes → depois)</th></tr>
+            </thead>
+            <tbody>
+              {mostradas.map((m) => (
+                <tr key={m.osId} className="data-table__row--interactive">
+                  <td><LinkExterno href={`/os/${m.osId}`} className="link link--chip">{m.numero}</LinkExterno></td>
+                  <td>{m.cidade}</td>
+                  <td><Pill codigo={m.antes.codigo} /> <span className="font-mono">nível {m.antes.nivel}</span></td>
+                  <td><Pill codigo={m.depois.codigo} /> <span className="font-mono">nível {m.depois.nivel}</span></td>
+                  <td className="data-table__cell--wrap font-mono">{m.antes.regras.join(", ") || "—"} → {m.depois.regras.join(", ") || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Tabela>
+          {i.mudancas.length > LIMITE && <p className="text-muted">Mostrando as primeiras {LIMITE} de {i.mudancas.length} OS que mudam.</p>}
         </>
       )}
-    </div>
+    </section>
   );
 }

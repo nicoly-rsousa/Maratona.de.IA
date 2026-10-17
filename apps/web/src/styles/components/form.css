@@ -1,0 +1,154 @@
+/* control — input/select/textarea. Modificadores: --sm, --mono, --narrow, --grow. Inválido via [aria-invalid="true"]. */
+.control {
+  min-height: var(--control-height);
+  width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.control:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.control:focus-visible {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-soft), 0 0 0 1px var(--color-focus);
+}
+
+.control:disabled {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.control[aria-invalid="true"] {
+  border-color: var(--color-danger-border);
+  box-shadow: inset 0 0 0 1px var(--color-danger-border);
+}
+
+.control::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.8;
+}
+
+textarea.control {
+  min-height: 72px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}
+
+.control--sm {
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.control--mono {
+  font-family: var(--font-mono);
+}
+
+.control--narrow {
+  width: 104px;
+}
+
+.control--auto {
+  width: auto;
+}
+
+/* form-field — rótulo + controle + dica + erro, sempre empilhados */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.form-field__label {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.form-field__required {
+  margin-left: 2px;
+  color: var(--color-danger);
+}
+
+.form-field__hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.form-field__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* form-field--inline: checkbox/rádio com o rótulo ao lado */
+.form-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.form-field--inline .form-field__label {
+  font-weight: var(--font-weight-medium);
+}
+
+/* form-grid — campos lado a lado, quebrando conforme a largura */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3) var(--space-4);
+  align-items: start;
+}
+
+.form-grid__wide {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 768px) {
+  .form-grid__wide {
+    grid-column: span 2;
+  }
+}
+
+/* form-group — fieldset com legenda */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* float + largura total tira a legenda da borda do fieldset (comportamento nativo) e permite o divisor abaixo */
+.form-group__legend {
+  float: left;
+  width: 100%;
+  padding: 0 0 var(--space-2);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.form-group__hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+}
+
+.form-group + .form-group {
+  margin-top: var(--space-4);
+}

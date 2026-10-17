@@ -1,0 +1,79 @@
+/* alert — mensagem de estado. Variantes: --error, --warning, --success, --info. Ícone + texto: nunca só a cor. */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.alert__icon {
+  flex: none;
+  margin-top: 1px;
+}
+
+.alert__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert__content > * + * {
+  margin-top: var(--space-2);
+}
+
+.alert__title {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-weight: var(--font-weight-semibold);
+}
+
+.alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.alert--error {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+}
+
+.alert--error .alert__icon,
+.alert--error .alert__title {
+  color: var(--color-danger);
+}
+
+.alert--warning {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
+}
+
+.alert--warning .alert__icon,
+.alert--warning .alert__title {
+  color: var(--color-warning);
+}
+
+.alert--success {
+  border-color: var(--color-success-border);
+  background: var(--color-success-bg);
+}
+
+.alert--success .alert__icon,
+.alert--success .alert__title {
+  color: var(--color-success);
+}
+
+.alert--info {
+  border-color: var(--color-info-border);
+  background: var(--color-info-bg);
+}
+
+.alert--info .alert__icon,
+.alert--info .alert__title {
+  color: var(--color-info);
+}

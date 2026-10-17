@@ -4,7 +4,9 @@ import { useCallback, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ESCOPO_GLOBAL, type EstadoPontuacao } from "@farol/shared";
 import { api } from "@/lib/api";
-import { Carregando, ErroApi } from "@/components/ui";
+import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import { CampoFormulario } from "@/components/campo";
+import { EstadoConsulta, SemCidade } from "@/components/estados";
 import { useApp } from "../app-context";
 import { Painel } from "./painel";
 
@@ -40,7 +42,7 @@ export default function PontuacaoPage() {
     gcTime: 0,
   });
 
-  if (escopo === "") return <div className="warn">Seu usuário não tem cidade vinculada. Peça a um administrador para vinculá-lo a um município.</div>;
+  if (escopo === "") return <SemCidade />;
 
   const podeEditar = ator.permissoes.includes("pontuacao") && (escopo !== ESCOPO_GLOBAL || ator.todasCidades);
   const podeAprovar = ator.permissoes.includes("pontuacao_aprovar");
@@ -60,37 +62,41 @@ export default function PontuacaoPage() {
 
   return (
     <>
-      <label className="mu mb-2 flex items-center gap-1">
-        Escopo
-        <select value={escopo} onChange={(e) => trocarEscopo(e.target.value)} aria-label="Escopo da pontuação">
-          {opcoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-        </select>
-      </label>
+      <CabecalhoPagina
+        titulo={`Pontuação — ${escopoNome}`}
+        descricao="Versão publicada nunca é editada: edite o rascunho e publique uma nova versão. Valores demonstrativos."
+        acoes={
+          <CampoFormulario id="pont-escopo" rotulo="Escopo">
+            {(a) => (
+              <select {...a} className="control control--auto" value={escopo} onChange={(e) => trocarEscopo(e.target.value)}>
+                {opcoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+              </select>
+            )}
+          </CampoFormulario>
+        }
+      />
 
-      {q.isPending ? (
-        <Carregando texto="Carregando as versões…" />
-      ) : q.isError ? (
-        <ErroApi erro={q.error} titulo="Não foi possível carregar as versões de pontuação." onRetry={() => q.refetch()} />
-      ) : (
-        <Painel
-          key={`${escopo}:${nonce}`}
-          estado={q.data}
-          escopo={escopo}
-          escopoNome={escopoNome}
-          podeEditar={podeEditar}
-          podeAprovar={podeAprovar}
-          atorId={ator.id}
-          aviso={aviso}
-          onSujo={onSujo}
-          onRecarregar={() => { void recarregar(); }}
-          onAtualizado={(e, msg) => {
-            qc.setQueryData(chave, e);
-            sujo.current = false;
-            setAviso(msg);
-            setNonce((n) => n + 1);
-          }}
-        />
-      )}
+      <EstadoConsulta consulta={q} carregando="Carregando as versões…" erro="Não foi possível carregar as versões de pontuação.">
+        {(estado) => (
+          <Painel
+            key={`${escopo}:${nonce}`}
+            estado={estado}
+            escopo={escopo}
+            podeEditar={podeEditar}
+            podeAprovar={podeAprovar}
+            atorId={ator.id}
+            aviso={aviso}
+            onSujo={onSujo}
+            onRecarregar={() => { void recarregar(); }}
+            onAtualizado={(e, msg) => {
+              qc.setQueryData(chave, e);
+              sujo.current = false;
+              setAviso(msg);
+              setNonce((n) => n + 1);
+            }}
+          />
+        )}
+      </EstadoConsulta>
     </>
   );
 }

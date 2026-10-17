@@ -10,3 +10,9 @@ export function prazoTexto(iso: string | null): string {
 }
 
 export const dataHora = (iso: string) => new Date(iso).toLocaleString("pt-BR");
+
+/** Distância em metros no formato pt-BR ("1.250 m"); "—" quando desconhecida. */
+export const formatarMetros = (m: number | null) => (m == null ? "—" : `${m.toLocaleString("pt-BR")} m`);
+
+/** Mensagem legível de um erro qualquer (ApiError já traz a mensagem da regra). */
+export const mensagemDeErro = (e: unknown) => (e instanceof Error ? e.message : "Erro desconhecido.");

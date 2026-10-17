@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import { Circle, CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import { CODIGOS, coordenadaDoClique, distanciasAteEquipes, temPonto, type EquipeMapa, type OSMapa } from "@farol/shared";
+import { formatarMetros } from "@/lib/format";
 
 export interface MapaProps {
   os: OSMapa[];
@@ -26,7 +27,9 @@ export interface MapaProps {
 }
 
 const BRASIL: [number, number] = [-14.235, -51.925];
-const TELA = ["--c0", "--c1", "--c2", "--c3", "--c4", "--ac", "--tx", "--bg", "--mu"] as const;
+/** Tokens de src/styles/tokens.css lidos em runtime; a ordem das prioridades segue CODIGOS (0 = mais urgente). */
+const PRIORIDADES = ["--color-priority-emergente", "--color-priority-urgente", "--color-priority-alta", "--color-priority-media", "--color-priority-baixa"] as const;
+const TELA = [...PRIORIDADES, "--color-primary", "--color-text-muted", "--color-map-team", "--color-map-marker-stroke"] as const;
 
 /** Cores do tema atual (o Leaflet não resolve `var()` em atributos SVG); relê quando o tema alterna. */
 function useCores(): Record<string, string> {
@@ -85,16 +88,18 @@ export function MapaLeaflet({ os, equipes, mostrarEquipes, selecionadaId, raioM,
     ...comPonto.map((o): [number, number] => [o.lat, o.lng]),
     ...(mostrarEquipes ? eqComPonto.map((e): [number, number] => [e.lat, e.lng]) : []),
   ];
-  const ac = cor["--ac"] || "#5cc8d6";
+  const ac = cor["--color-primary"] || "currentColor";
+  const contorno = cor["--color-map-marker-stroke"] || "currentColor";
   const inicio = pontos[0] ?? (centro ? ([centro.lat, centro.lng] as [number, number]) : BRASIL);
   const ligacoes = sel && temPonto(sel) && mostrarEquipes ? distanciasAteEquipes(sel, eqComPonto) : [];
 
   return (
-    <div role="region" aria-label={rotulo} style={{ height: altura, border: "1px solid var(--ln)" }}>
+    // A altura vem de quem usa (px ou expressão CSS): é dado, não tema; por isso é o único estilo em linha.
+    <div role="region" aria-label={rotulo} className="map-view__canvas" style={{ height: altura }}>
       <MapContainer
         center={inicio}
         zoom={13}
-        style={{ height: "100%", width: "100%", cursor: onClicar ? "crosshair" : undefined }}
+        className={onClicar ? "map-view__leaflet map-view__leaflet--pick" : "map-view__leaflet"}
         scrollWheelZoom
       >
         <TileLayer
@@ -111,13 +116,13 @@ export function MapaLeaflet({ os, equipes, mostrarEquipes, selecionadaId, raioM,
         )}
         {ligacoes.map((l) =>
           l.distanciaM != null && temPonto(l.equipe) && sel && temPonto(sel) ? (
-            <Polyline key={l.equipe.id} positions={[[sel.lat, sel.lng], [l.equipe.lat, l.equipe.lng]]} pathOptions={{ color: cor["--mu"] || "#8296aa", dashArray: "2 6", weight: 1.5 }}>
-              <Tooltip sticky>{l.equipe.id}: {l.distanciaM} m em linha reta</Tooltip>
+            <Polyline key={l.equipe.id} positions={[[sel.lat, sel.lng], [l.equipe.lat, l.equipe.lng]]} pathOptions={{ color: cor["--color-text-muted"] || "currentColor", dashArray: "2 6", weight: 1.5 }}>
+              <Tooltip sticky>{l.equipe.id}: {formatarMetros(l.distanciaM)} em linha reta</Tooltip>
             </Polyline>
           ) : null,
         )}
         {mostrarEquipes && eqComPonto.map((e) => (
-          <CircleMarker key={e.id} center={[e.lat, e.lng]} radius={7} pathOptions={{ color: cor["--bg"] || "#0f1419", weight: 2, fillColor: cor["--tx"] || "#dbe4ee", fillOpacity: 1 }}>
+          <CircleMarker key={e.id} center={[e.lat, e.lng]} radius={7} pathOptions={{ color: contorno, weight: 2, fillColor: cor["--color-map-team"] || "currentColor", fillOpacity: 1 }}>
             <Tooltip permanent direction="right" offset={[8, 0]}>{e.id} {e.emUso}/{e.capacidade}</Tooltip>
           </CircleMarker>
         ))}
@@ -126,7 +131,7 @@ export function MapaLeaflet({ os, equipes, mostrarEquipes, selecionadaId, raioM,
             key={o.id}
             center={[o.lat, o.lng]}
             radius={o.id === selecionadaId ? 12 : 9}
-            pathOptions={{ color: "#fff", weight: 2, fillColor: cor[`--c${o.codigo}`] || "#888", fillOpacity: 1 }}
+            pathOptions={{ color: contorno, weight: 2, fillColor: cor[PRIORIDADES[o.codigo] ?? ""] || "currentColor", fillOpacity: 1 }}
             eventHandlers={onSelecionar ? { click: () => onSelecionar(o.id) } : undefined}
           >
             <Tooltip>{o.num} · {CODIGOS[o.codigo] ?? `Código ${o.codigo}`}{onSelecionar ? " — clique para abrir a rota no Maps" : ""}</Tooltip>
@@ -135,7 +140,7 @@ export function MapaLeaflet({ os, equipes, mostrarEquipes, selecionadaId, raioM,
         {ponto && (
           <>
             <Circle center={[ponto.lat, ponto.lng]} radius={raioM} pathOptions={{ color: ac, fill: false, dashArray: "6 4", weight: 1.5 }} />
-            <CircleMarker center={[ponto.lat, ponto.lng]} radius={8} pathOptions={{ color: "#fff", weight: 2, fillColor: ac, fillOpacity: 1 }}>
+            <CircleMarker center={[ponto.lat, ponto.lng]} radius={8} pathOptions={{ color: contorno, weight: 2, fillColor: ac, fillOpacity: 1 }}>
               <Tooltip permanent direction="top">Local escolhido</Tooltip>
             </CircleMarker>
           </>

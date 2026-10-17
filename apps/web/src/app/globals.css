@@ -1,62 +1,28 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+ * Ponto de entrada do CSS (ordem = cascata; postcss-import resolve os @import):
+ * 1. tokens · 2. base (preflight do Tailwind + elementos) · 3. layout · 4. componentes BEM · 5. páginas · 6. utilitários do Tailwind.
+ * Convenção: classes próprias em BEM (bloco__elemento--modificador); Tailwind só para layout pontual (flex, gap, grid, margens).
+ * Cores sempre via tokens (src/styles/tokens.css). Detalhes em docs/DESIGN-SYSTEM.md.
+ */
+@import "../styles/tokens.css";
 
-/* Identidade visual do protótipo docs/farol.html */
-:root {
-  --bg: #0f1419; --p1: #171e26; --p2: #1f2833; --ln: #2d3a48; --tx: #dbe4ee; --mu: #8296aa; --ac: #5cc8d6; --ok: #6fbf8a;
-  --c0: #ff3d8b; --c1: #ff5a3c; --c2: #f2a900; --c3: #4f9cff; --c4: #7d9a8c; color-scheme: dark;
-}
-:root[data-t="l"] {
-  --bg: #eef2f6; --p1: #fff; --p2: #e4eaf0; --ln: #c3cfdb; --tx: #16212c; --mu: #566879; --ac: #0b7f90; --ok: #1f7a45;
-  --c0: #c4005f; --c1: #c93a14; --c2: #9a6a00; --c3: #1f64c8; --c4: #4c675a; color-scheme: light;
-}
+@import "tailwindcss/base";
+@import "../styles/base.css";
 
-@layer base {
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--tx); font: 13px/1.4 system-ui, sans-serif; }
-  :focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
-  h2 { font-size: 15px; margin: 0 0 8px; }
-  h3 { font-size: 13px; margin: 12px 0 4px; }
-  select, input, textarea, button { font: inherit; color: var(--tx); background: var(--p2); border: 1px solid var(--ln); border-radius: 3px; padding: 4px 7px; }
-  button { cursor: pointer; }
-  button:hover:not(:disabled) { border-color: var(--ac); }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-}
+@import "tailwindcss/components";
+@import "../styles/layout.css";
+@import "../styles/components/button.css";
+@import "../styles/components/badge.css";
+@import "../styles/components/alert.css";
+@import "../styles/components/card.css";
+@import "../styles/components/data-table.css";
+@import "../styles/components/form.css";
+@import "../styles/components/feedback.css";
+@import "../styles/components/navigation.css";
+@import "../styles/components/icon.css";
+@import "../styles/components/dialog.css";
+@import "../styles/pages/login.css";
+@import "../styles/pages/map-view.css";
+@import "../styles/pages/rule-card.css";
 
-@layer components {
-  .btn-pr, button.pr { background: var(--ac); color: var(--bg); border-color: var(--ac); font-weight: 600; }
-  .tw { overflow-x: auto; }
-  /* número da OS na fila: botão mono com borda, como no protótipo */
-  .os-bt { display: inline-block; padding: 3px 7px; border: 1px solid var(--ln); border-radius: 3px; background: var(--p2); color: var(--tx); text-decoration: none; }
-  .os-bt:hover { border-color: var(--ac); }
-  a.bt { display: inline-block; padding: 3px 7px; border: 1px solid var(--ln); border-radius: 3px; color: var(--ac); text-decoration: none; background: var(--p2); }
-  a.bt:hover { border-color: var(--ac); }
-  .tabela { border-collapse: collapse; width: 100%; }
-  .tabela th, .tabela td { padding: 4px 7px; border-bottom: 1px solid var(--ln); text-align: left; white-space: nowrap; }
-  .tabela th { color: var(--mu); font-weight: 500; }
-  .tabela tr.r:hover { background: var(--p2); }
-  .pill { display: inline-block; min-width: 74px; text-align: center; padding: 1px 6px; border-radius: 2px; font-weight: 700; color: #0f1419; }
-  :root[data-t="l"] .pill { color: #fff; }
-  .box { background: var(--p1); border: 1px solid var(--ln); padding: 10px; margin-bottom: 10px; }
-  .err { border-left: 3px solid var(--c1); background: var(--p2); padding: 6px 9px; margin: 6px 0; }
-  .warn { border-left: 3px solid var(--c2); background: var(--p2); padding: 6px 9px; margin: 6px 0; }
-  .tabs { display: flex; gap: 4px; margin: 8px 0; }
-  .tabs button[aria-selected="true"] { border-color: var(--ac); color: var(--ac); }
-  .sk { height: 14px; background: var(--p2); margin: 6px 0; animation: pl 1.2s infinite; }
-  .btn-nav { text-align: left; border-color: transparent; background: none; }
-  .btn-nav[aria-current="true"] { background: var(--p2); border-left: 3px solid var(--ac); }
-  .okm { border-left: 3px solid var(--ok); background: var(--p2); padding: 6px 9px; margin: 6px 0; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
-  .row label { display: flex; flex-direction: column; gap: 2px; color: var(--mu); }
-  dialog { background: var(--p1); color: var(--tx); border: 1px solid var(--ac); max-width: 420px; width: 92%; padding: 12px; }
-  dialog::backdrop { background: #0008; }
-  .mu { color: var(--mu); }
-  .m { font-family: ui-monospace, Menlo, Consolas, monospace; }
-}
-
-/* Cores das pílulas fora do @layer: Pill monta `k${codigo}` em runtime e o Tailwind removeria as regras. */
-.k0 { background: var(--c0); } .k1 { background: var(--c1); } .k2 { background: var(--c2); } .k3 { background: var(--c3); } .k4 { background: var(--c4); }
-
-@keyframes pl { 50% { opacity: .4; } }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@import "tailwindcss/utilities";

@@ -2,17 +2,26 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import AssignmentInd from "@mui/icons-material/AssignmentInd";
+import DirectionsOutlined from "@mui/icons-material/DirectionsOutlined";
+import PersonRemoveOutlined from "@mui/icons-material/PersonRemoveOutlined";
+import PlayArrow from "@mui/icons-material/PlayArrow";
 import {
   PASSOS_DESPACHO, proximoPasso, urlMapas,
   type DetalheOS, type PassoDespacho, type PontoMapa, type Recomendacao,
 } from "@farol/shared";
 import { api, apiPost } from "@/lib/api";
+import { formatarMetros } from "@/lib/format";
 import type { Ator } from "@/lib/types";
-import { Carregando, ErroAcao, ErroApi } from "@/components/ui";
+import { Alerta, ErroAcao } from "@/components/alerta";
+import { CampoCheckbox } from "@/components/campo";
+import { EstadoConsulta, EstadoVazio } from "@/components/estados";
+import { Icone } from "@/components/icone";
 import { JustificativaDialog } from "@/components/justificativa-dialog";
+import { LinkExterno } from "@/components/link-externo";
+import { Tabela } from "@/components/tabela";
 
 const ponto = (lat: number | null, lng: number | null): PontoMapa | null => (lat != null && lng != null ? { lat, lng } : null);
-const metros = (m: number | null) => (m == null ? "—" : `${m.toLocaleString("pt-BR")} m`);
 
 export function DespachoAba({ d, ator }: { d: DetalheOS; ator: Ator }) {
   const qc = useQueryClient();
@@ -60,7 +69,7 @@ export function DespachoAba({ d, ator }: { d: DetalheOS; ator: Ator }) {
     setBloqueio(null);
     const p = problemas(r);
     if (r.exigeExcecao && !podeExcecao) {
-      setBloqueio(`Designação bloqueada: ${p.join("; ")}. Só o Supervisor pode autorizar exceção de despacho. Peça a ele ou escolha outra equipe.`);
+      setBloqueio(`${p.join("; ")}. Só o Supervisor pode autorizar exceção de despacho. Peça a ele ou escolha outra equipe.`);
       return;
     }
     if (p.length) setAlvo(r);
@@ -76,33 +85,47 @@ export function DespachoAba({ d, ator }: { d: DetalheOS; ator: Ator }) {
     const passo = proximoPasso(o.status);
     // Equipe de campo só mexe na própria equipe; a API confere de novo dentro da transação.
     const podeAvancar = podeDesignar || (ator.permissoes.includes("campo") && ator.equipeId === desp.equipe);
+    const base = ponto(desp.equipeLat, desp.equipeLng);
     return (
       <>
-        <p>
-          Equipe designada: <b>{desp.equipe}</b>
-          {desp.apoioIntermunicipal && <span className="warn"> Apoio intermunicipal: {desp.apoioJustificativa}</span>}
-          {desp.excecaoJustificativa && <span className="warn"> Exceção autorizada: {desp.excecaoJustificativa}</span>}
-        </p>
-        <p>
-          <a className="bt" href={urlMapas(destino)} target="_blank" rel="noopener noreferrer">Navegar até a OS no Maps</a>{" "}
-          {ponto(desp.equipeLat, desp.equipeLng) && (
-            <a className="bt" href={urlMapas(destino, ponto(desp.equipeLat, desp.equipeLng))} target="_blank" rel="noopener noreferrer">
-              Rota a partir da base da equipe
-            </a>
+        <dl className="summary">
+          <div className="summary__item"><dt className="summary__label">Equipe designada</dt><dd className="summary__value">{desp.equipe}</dd></div>
+          <div className="summary__item"><dt className="summary__label">Status</dt><dd className="summary__value">{o.status}</dd></div>
+        </dl>
+        {desp.apoioIntermunicipal && <Alerta tipo="info" titulo="Apoio intermunicipal">{desp.apoioJustificativa}</Alerta>}
+        {desp.excecaoJustificativa && <Alerta tipo="warning" titulo="Exceção autorizada">{desp.excecaoJustificativa}</Alerta>}
+        <div className="button-group">
+          <LinkExterno href={urlMapas(destino)} className="button button--sm"><Icone de={DirectionsOutlined} />Navegar até a OS no Maps</LinkExterno>
+          {base && (
+            <LinkExterno href={urlMapas(destino, base)} className="button button--sm"><Icone de={DirectionsOutlined} />Rota a partir da base da equipe</LinkExterno>
           )}
+        </div>
+        <p className="text-muted">
+          Coordenadas: <span className="font-mono">{osPonto ? `${osPonto.lat.toFixed(5)}, ${osPonto.lng.toFixed(5)}` : "—"}</span> · endereço {o.endereco} · trafo {o.transformador ?? "—"} · UC {o.uc ?? "—"}.
         </p>
-        <p className="mu">
-          Coordenadas: {osPonto ? `${osPonto.lat.toFixed(5)}, ${osPonto.lng.toFixed(5)}` : "—"} · endereço {o.endereco} · trafo {o.transformador ?? "—"} · UC {o.uc ?? "—"}.{" "}
-          {aproximada && <b>Localização aproximada: a OS não tem coordenadas, a rota usa o endereço.</b>}
-        </p>
-        {passo && (
-          <button className="btn-pr mr-1" disabled={!podeAvancar || avancar.isPending} onClick={() => { avancar.reset(); avancar.mutate(passo); }}>
-            {PASSOS_DESPACHO[passo].rotulo}
+        {aproximada && <Alerta tipo="warning">Localização aproximada: a OS não tem coordenadas, a rota usa o endereço.</Alerta>}
+        <div className="card__footer">
+          {passo && (
+            <button
+              type="button" className="button button--primary" aria-describedby={!podeAvancar ? "despacho-sem-permissao" : undefined}
+              disabled={!podeAvancar || avancar.isPending} onClick={() => { avancar.reset(); avancar.mutate(passo); }}
+            >
+              <Icone de={PlayArrow} />{PASSOS_DESPACHO[passo].rotulo}
+            </button>
+          )}
+          <button
+            type="button" className="button button--danger" aria-describedby={!podeDesignar ? "despacho-sem-permissao" : undefined}
+            disabled={!podeDesignar || remover.isPending} onClick={() => { remover.reset(); setRemovendo(true); }}
+          >
+            <Icone de={PersonRemoveOutlined} />Remover equipe
           </button>
-        )}
-        <button disabled={!podeDesignar || remover.isPending} title={podeDesignar ? undefined : "Seu perfil não tem esta permissão"} onClick={() => { remover.reset(); setRemovendo(true); }}>
-          Remover equipe
-        </button>
+          {/* motivo visível do botão desabilitado (podeDesignar implica podeAvancar) */}
+          {!podeDesignar && (
+            <span id="despacho-sem-permissao" className="button-group__note">
+              {passo && !podeAvancar ? "Seu perfil não tem permissão para estas ações." : "Seu perfil não pode remover a equipe."}
+            </span>
+          )}
+        </div>
         {avancar.isError && <ErroAcao erro={avancar.error} />}
         {remover.isError && <ErroAcao erro={remover.error} />}
         <JustificativaDialog
@@ -116,57 +139,61 @@ export function DespachoAba({ d, ator }: { d: DetalheOS; ator: Ator }) {
   }
 
   // ───── Sem equipe ─────
-  if (!podeDesignar) return <p className="mu">Nenhuma equipe designada.</p>;
+  if (!podeDesignar) return <p className="text-muted">Nenhuma equipe designada.</p>;
   if (o.status !== "Aguardando despacho") {
-    return <p className="mu">Esta OS não está em status que permita designar equipe. Coloque-a em &quot;Aguardando despacho&quot; na aba Status.</p>;
+    return <p className="text-muted">Esta OS não está em status que permita designar equipe. Coloque-a em &quot;Aguardando despacho&quot; na aba Status.</p>;
   }
 
   return (
     <>
-      <p className="mu">
+      <p className="text-muted">
         Recomendação: compatibilidade e disponibilidade antes da distância. Distância em linha reta (sem rota), sem tempo estimado. &quot;Ir no Maps&quot; abre a rota real, com distância e tempo.
         {o.exigeQualificacao && <> Exige: {o.exigeQualificacao}.</>}
       </p>
-      {aproximada && <div className="warn">Esta OS não tem coordenadas: localização aproximada, sem distância calculada.</div>}
-      <label className="mu">
-        <input type="checkbox" checked={apoio} onChange={(e) => setApoio(e.target.checked)} /> Incluir equipes de outras cidades (apoio intermunicipal, com justificativa)
-      </label>
+      {aproximada && <Alerta tipo="warning">Esta OS não tem coordenadas: localização aproximada, sem distância calculada.</Alerta>}
+      <CampoCheckbox rotulo="Incluir equipes de outras cidades (apoio intermunicipal, com justificativa)" checked={apoio} onChange={setApoio} />
 
-      {recomendadas.isPending ? (
-        <Carregando texto="Carregando equipes…" />
-      ) : recomendadas.isError ? (
-        <ErroApi erro={recomendadas.error} titulo="Não foi possível carregar as equipes." onRetry={() => recomendadas.refetch()} />
-      ) : recomendadas.data.length === 0 ? (
-        <div className="box">Nenhuma equipe ativa nesta cidade.</div>
-      ) : (
-        <div className="tw">
-          <table className="tabela">
+      <EstadoConsulta consulta={recomendadas} carregando="Carregando equipes…" erro="Não foi possível carregar as equipes.">
+        {(lista) => lista.length === 0 ? (
+          <EstadoVazio>Nenhuma equipe ativa nesta cidade.</EstadoVazio>
+        ) : (
+          <Tabela legenda="Equipes recomendadas">
             <thead>
-              <tr><th>Equipe</th><th>Cidade</th><th>Carga</th><th>Compatível</th><th>Distância (linha reta)</th><th>Rota</th><th></th></tr>
+              <tr>
+                <th scope="col">Equipe</th><th scope="col">Cidade</th><th scope="col">Carga</th><th scope="col">Compatível</th>
+                <th scope="col">Distância (linha reta)</th><th scope="col">Rota</th><th scope="col"><span className="sr-only">Ação</span></th>
+              </tr>
             </thead>
             <tbody>
-              {recomendadas.data.map((r) => (
+              {lista.map((r) => (
                 <tr key={r.equipe}>
                   <td><b>{r.equipe}</b></td>
                   <td>{r.cidade}{r.apoioIntermunicipal && " (apoio intermunicipal)"}</td>
-                  <td className="m">{r.carga}/{r.capacidade}{!r.disponivel && " · cheia"}</td>
-                  <td>{r.compativel ? "sim" : `não — ${r.motivosIncompatibilidade.join("; ")}`}</td>
-                  <td className="m">{metros(r.distanciaM)}</td>
+                  <td className="data-table__cell--num">{r.carga}/{r.capacidade}{!r.disponivel && " · cheia"}</td>
+                  <td className="data-table__cell--wrap">{r.compativel ? "sim" : `não — ${r.motivosIncompatibilidade.join("; ")}`}</td>
+                  <td className="data-table__cell--num">{formatarMetros(r.distanciaM)}</td>
                   <td>
-                    <a className="bt" href={urlMapas(destino, r.base)} target="_blank" rel="noopener noreferrer">Ir no Maps</a>
+                    <LinkExterno href={urlMapas(destino, r.base)} className="link" rotulo={`Ir no Maps a partir da base da ${r.equipe}`}>Ir no Maps</LinkExterno>
                   </td>
-                  <td>
-                    <button disabled={!r.disponivel || designar.isPending} title={r.disponivel ? undefined : "Capacidade esgotada"} onClick={() => escolher(r)}>
-                      Designar
-                    </button>
+                  <td className="data-table__cell--actions">
+                    {r.disponivel ? (
+                      <button
+                        type="button" className="button button--sm" disabled={designar.isPending} onClick={() => escolher(r)}
+                        aria-label={`Designar a equipe ${r.equipe}`}
+                      >
+                        <Icone de={AssignmentInd} />Designar
+                      </button>
+                    ) : (
+                      <span className="text-muted">Capacidade esgotada</span>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      )}
-      {bloqueio && <div className="err" role="alert">{bloqueio}</div>}
+          </Tabela>
+        )}
+      </EstadoConsulta>
+      {bloqueio && <Alerta tipo="error" role="alert" titulo="Designação bloqueada">{bloqueio}</Alerta>}
       {designar.isError && <ErroAcao erro={designar.error} />}
 
       <JustificativaDialog
@@ -181,4 +208,3 @@ export function DespachoAba({ d, ator }: { d: DetalheOS; ator: Ator }) {
     </>
   );
 }
-

@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import ArrowForward from "@mui/icons-material/ArrowForward";
+import Replay from "@mui/icons-material/Replay";
 import { exigeMotivo, permissaoDaTransicao, transicoesManuais, type DetalheOS, type StatusOS } from "@farol/shared";
 import { apiPost } from "@/lib/api";
 import type { Ator } from "@/lib/types";
-import { ErroAcao } from "@/components/ui";
+import { ErroAcao } from "@/components/alerta";
+import { Icone } from "@/components/icone";
 import { JustificativaDialog } from "@/components/justificativa-dialog";
 
 function tituloDoDialogo(de: string, para: StatusOS) {
@@ -40,22 +43,24 @@ export function StatusAba({ d, ator }: { d: DetalheOS; ator: Ator }) {
 
   return (
     <>
-      <p>Status atual: <b>{de}</b></p>
+      <dl className="summary">
+        <div className="summary__item"><dt className="summary__label">Status atual</dt><dd className="summary__value">{de}</dd></div>
+      </dl>
       {todas.length === 0 ? (
-        <p className="mu">Sem transições manuais a partir deste status (o ciclo do despacho conduz as demais).</p>
+        <p className="text-muted">Sem transições manuais a partir deste status (o ciclo do despacho conduz as demais).</p>
       ) : permitidas.length === 0 ? (
-        <p className="mu">Seu perfil não tem permissão para alterar este status.</p>
+        <p className="text-muted">Seu perfil não tem permissão para alterar este status.</p>
       ) : (
-        <p>
+        <div className="button-group" role="group" aria-label="Mudar status para">
           {permitidas.map((p) => (
-            <button key={p} disabled={mudar.isPending} onClick={() => clicar(p)} className="mr-1">
-              {de === "Concluída" ? "Reabrir" : `→ ${p}`}
+            <button key={p} type="button" className="button" disabled={mudar.isPending} onClick={() => clicar(p)}>
+              {de === "Concluída" ? <><Icone de={Replay} />Reabrir</> : <><Icone de={ArrowForward} />{p}</>}
             </button>
           ))}
-        </p>
+        </div>
       )}
       {mudar.isError && <ErroAcao erro={mudar.error} />}
-      <p className="mu">Qualquer outra transição é recusada com 409.</p>
+      <p className="text-muted">Qualquer outra transição é recusada com 409.</p>
 
       <JustificativaDialog
         aberto={pendente !== null}

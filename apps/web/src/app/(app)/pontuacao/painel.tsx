@@ -2,17 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
+import DeleteOutline from "@mui/icons-material/DeleteOutlineOutlined";
+import Publish from "@mui/icons-material/Publish";
+import Refresh from "@mui/icons-material/Refresh";
+import SaveOutlined from "@mui/icons-material/SaveOutlined";
+import Undo from "@mui/icons-material/Undo";
 import type { ConteudoPontuacao, EstadoPontuacao, ModoPublicacao, RespostaPublicar, RespostaValidar, VersaoResumo } from "@farol/shared";
 import { ApiError, apiPost, apiPut } from "@/lib/api";
+import { MODO_PUBLICACAO } from "@/lib/escopo";
 import { dataHora } from "@/lib/format";
-import { ErroAcao } from "@/components/ui";
+import { Alerta, ErroAcao } from "@/components/alerta";
+import { CampoFormulario } from "@/components/campo";
+import { Icone } from "@/components/icone";
 import { Editor } from "./editor";
 import { Versoes } from "./versoes";
 
 interface Props {
   estado: EstadoPontuacao;
   escopo: string;
-  escopoNome: string;
   podeEditar: boolean;
   podeAprovar: boolean;
   atorId: string;
@@ -24,11 +32,12 @@ interface Props {
   onSujo: (sujo: boolean) => void;
 }
 
-const MODO_TXT: Record<ModoPublicacao, string> = { novas: "somente novas OS", reclassificar: "reclassificar as OS abertas" };
-
 const ehConflito = (e: unknown) => e instanceof ApiError && e.status === 409 && e.detalhe.regra === "conflito_rascunho";
 
-export function Painel({ estado, escopo, escopoNome, podeEditar, podeAprovar, atorId, aviso, onAtualizado, onRecarregar, onSujo }: Props) {
+/** Campos do formulário de publicação, para levar a mensagem de "faltou" ao campo certo. */
+interface Faltas { just?: string; vigencia?: string; modo?: string }
+
+export function Painel({ estado, escopo, podeEditar, podeAprovar, atorId, aviso, onAtualizado, onRecarregar, onSujo }: Props) {
   const inicial: ConteudoPontuacao | null = estado.rascunho?.conteudo ?? estado.publicada?.conteudo ?? estado.herdada?.conteudo ?? null;
   const [conteudo, setConteudo] = useState<ConteudoPontuacao | null>(inicial);
   const [validacao, setValidacao] = useState<{ erros: string[]; alertas: string[] } | null>(null);
@@ -36,7 +45,7 @@ export function Painel({ estado, escopo, escopoNome, podeEditar, podeAprovar, at
   const [just, setJust] = useState("");
   const [vigencia, setVigencia] = useState("");
   const [modo, setModo] = useState<"" | ModoPublicacao>(""); // sem valor padrão: a escolha é explícita (§5)
-  const [faltou, setFaltou] = useState(false);
+  const [faltas, setFaltas] = useState<Faltas>({});
 
   // o que está no servidor: o rascunho, ou (sem rascunho) a base de onde se parte
   const sujo = JSON.stringify(conteudo) !== JSON.stringify(inicial);
@@ -69,7 +78,7 @@ export function Painel({ estado, escopo, escopoNome, podeEditar, podeAprovar, at
     }),
     onSuccess: (r) => onAtualizado(r, r.resultado.aguardandoAprovacao
       ? `Versão v${r.resultado.numero} enviada para aprovação. Ela só vale depois que outra pessoa aprovar.`
-      : `Publicada a v${r.resultado.numero} (${MODO_TXT[modo as ModoPublicacao]}). O histórico anterior das OS foi mantido.`),
+      : `Publicada a v${r.resultado.numero} (${MODO_PUBLICACAO[modo as ModoPublicacao].toLowerCase()}). O histórico anterior das OS foi mantido.`),
     onError: (e) => {
       aoFalhar(e);
       if (e instanceof ApiError && e.detalhe.erros) setValidacao({ erros: e.detalhe.erros, alertas: e.detalhe.alertas ?? [] });
@@ -94,8 +103,13 @@ export function Painel({ estado, escopo, escopoNome, podeEditar, podeAprovar, at
   const erroAcao = [salvar, publicar, restaurar, aprovar, descartar, validar].map((m) => m.error).find((e) => e && !ehConflito(e));
 
   function aoPublicar() {
-    if (!just.trim() || !vigencia || Number.isNaN(Date.parse(vigencia)) || !modo) { setFaltou(true); return; }
-    setFaltou(false);
+    const f: Faltas = {
+      just: just.trim() ? undefined : "Informe a justificativa.",
+      vigencia: vigencia && !Number.isNaN(Date.parse(vigencia)) ? undefined : "Informe o início da vigência.",
+      modo: modo ? undefined : "Escolha o modo: somente novas OS ou reclassificar as abertas.",
+    };
+    if (f.just || f.vigencia || f.modo) { setFaltas(f); return; }
+    setFaltas({});
     publicar.mutate();
   }
 
@@ -104,106 +118,138 @@ export function Painel({ estado, escopo, escopoNome, podeEditar, podeAprovar, at
 
   return (
     <>
-      <h2>Pontuação — {escopoNome}</h2>
-      <p className="mu">
-        Versão publicada nunca é editada: edite o rascunho e publique uma nova versão. Valores demonstrativos.
-        {estado.exigirAprovacao && <> Neste ambiente a publicação exige aprovação de um segundo usuário.</>}
-      </p>
-
-      <p>
-        {estado.publicada ? (
-          <>Vigente: <b>v{estado.publicada.numero}</b> {estado.publicada.vigenciaInicio && <span className="mu">desde {dataHora(estado.publicada.vigenciaInicio)}</span>}</>
-        ) : estado.herdada ? (
-          <>Sem versão própria: vale a <b>global v{estado.herdada.numero}</b>. A versão da cidade prevalece sobre a global assim que publicada.</>
-        ) : (
-          <span className="mu">Nenhuma versão publicada neste escopo.</span>
+      <div className="card">
+        <dl className="summary">
+          <div className="summary__item">
+            <dt className="summary__label">Vigente</dt>
+            <dd className="summary__value">
+              {estado.publicada ? (
+                <>v{estado.publicada.numero}{estado.publicada.vigenciaInicio && <span className="font-normal text-muted">desde {dataHora(estado.publicada.vigenciaInicio)}</span>}</>
+              ) : estado.herdada ? (
+                <>global v{estado.herdada.numero}</>
+              ) : (
+                <span className="font-normal text-muted">nenhuma neste escopo</span>
+              )}
+            </dd>
+          </div>
+          {r && (
+            <div className="summary__item">
+              <dt className="summary__label">Rascunho</dt>
+              <dd className="summary__value">
+                v{r.numero}{r.restauradaDe != null && <> (de v{r.restauradaDe})</>}
+                <span className="font-normal text-muted">alterado{r.atualizadoPor ? ` por ${r.atualizadoPor}` : ""} em {dataHora(r.atualizadoEm)}</span>
+              </dd>
+            </div>
+          )}
+        </dl>
+        {!estado.publicada && estado.herdada && (
+          <p className="text-muted">Sem versão própria: vale a global v{estado.herdada.numero}. A versão da cidade prevalece sobre a global assim que publicada.</p>
         )}
-        {r && <> · Rascunho: <b>v{r.numero}</b>{r.restauradaDe != null && <> (de v{r.restauradaDe})</>} <span className="mu">alterado{r.atualizadoPor ? ` por ${r.atualizadoPor}` : ""} em {dataHora(r.atualizadoEm)}</span></>}
-      </p>
+        {estado.exigirAprovacao && <p className="text-muted">Neste ambiente a publicação exige aprovação de um segundo usuário.</p>}
+      </div>
 
-      {aviso && <div className="okm" role="status">{aviso}</div>}
+      {aviso && <Alerta tipo="success" role="status">{aviso}</Alerta>}
       {estado.aguardando && (
-        <div className="warn">
-          A <b>v{estado.aguardando.numero}</b> está aguardando aprovação{estado.aguardando.autor ? ` (enviada por ${estado.aguardando.autor})` : ""}.
+        <Alerta tipo="warning" titulo={`A v${estado.aguardando.numero} está aguardando aprovação${estado.aguardando.autor ? ` (enviada por ${estado.aguardando.autor})` : ""}.`}>
           Enquanto isso não for decidido, nenhuma outra versão pode ser publicada neste escopo.
-        </div>
+        </Alerta>
       )}
       {conflito && (
-        <div className="warn" role="alert">
-          <b>Outro usuário alterou o rascunho.</b> {conflito} Suas alterações <b>não</b> foram salvas.{" "}
-          <button onClick={onRecarregar}>Recarregar o rascunho</button> <span className="mu">(descarta o que você editou aqui)</span>
-        </div>
+        <Alerta
+          tipo="warning" role="alert" titulo="Outro usuário alterou o rascunho."
+          acoes={<>
+            <button type="button" className="button button--sm" onClick={onRecarregar}><Icone de={Refresh} />Recarregar o rascunho</button>
+            <span className="button-group__note">(descarta o que você editou aqui)</span>
+          </>}
+        >
+          {conflito} Suas alterações <b>não</b> foram salvas.
+        </Alerta>
       )}
 
       {!conteudo ? (
-        <div className="warn">Não há versão publicada nem rascunho para partir. Publique primeiro a versão global.</div>
+        <Alerta tipo="warning">Não há versão publicada nem rascunho para partir. Publique primeiro a versão global.</Alerta>
       ) : (
-        <>
+        <section className="page__section" aria-labelledby="pont-criterios">
+          <h2 id="pont-criterios" className="page__section-title">Critérios e faixas</h2>
           <Editor conteudo={conteudo} onEditar={editar} somenteLeitura={!podeEditar} />
 
           {podeEditar && (
-            <p>
-              <button className="btn-pr" onClick={() => salvar.mutate()} disabled={ocupado || !sujo}>Salvar rascunho</button>{" "}
-              <button onClick={() => validar.mutate()} disabled={ocupado}>Validar</button>{" "}
-              {sujo && <button onClick={() => { if (window.confirm("Descartar as alterações ainda não salvas?")) onRecarregar(); }} disabled={ocupado}>Desfazer alterações</button>}{" "}
-              {r && <button onClick={() => { if (window.confirm(`Descartar o rascunho v${r.numero}?`)) descartar.mutate(); }} disabled={ocupado}>Descartar rascunho</button>}
-              {sujo && <span className="mu"> · alterações não salvas</span>}
-            </p>
+            <div className="button-group">
+              <button type="button" className="button button--primary" onClick={() => salvar.mutate()} disabled={ocupado || !sujo}><Icone de={SaveOutlined} />Salvar rascunho</button>
+              <button type="button" className="button" onClick={() => validar.mutate()} disabled={ocupado}><Icone de={FactCheckOutlined} />Validar</button>
+              {sujo && (
+                <button type="button" className="button" onClick={() => { if (window.confirm("Descartar as alterações ainda não salvas?")) onRecarregar(); }} disabled={ocupado}>
+                  <Icone de={Undo} />Desfazer alterações
+                </button>
+              )}
+              {r && (
+                <button type="button" className="button button--danger" onClick={() => { if (window.confirm(`Descartar o rascunho v${r.numero}?`)) descartar.mutate(); }} disabled={ocupado}>
+                  <Icone de={DeleteOutline} />Descartar rascunho
+                </button>
+              )}
+              {sujo && <span className="button-group__note">Alterações não salvas</span>}
+            </div>
           )}
 
           {validacao && (
-            <div aria-live="polite">
-              {validacao.erros.length === 0 && <div className="okm">Sem erros: a versão pode ser publicada{validacao.alertas.length ? ", com alertas" : ""}.</div>}
-              {validacao.erros.map((e) => <div key={e} className="err"><b>Erro:</b> {e}</div>)}
-              {validacao.alertas.map((a) => <div key={a} className="warn">Alerta: {a}</div>)}
+            <div className="flex flex-col gap-2" aria-live="polite">
+              {validacao.erros.length === 0 && <Alerta tipo="success">Sem erros: a versão pode ser publicada{validacao.alertas.length ? ", com alertas" : ""}.</Alerta>}
+              {validacao.erros.map((e) => <Alerta key={e} tipo="error" titulo="Erro">{e}</Alerta>)}
+              {validacao.alertas.map((a) => <Alerta key={a} tipo="warning" titulo="Alerta">{a}</Alerta>)}
             </div>
           )}
-        </>
+        </section>
       )}
 
       {erroAcao && <ErroAcao erro={erroAcao} />}
 
       {podeEditar && conteudo && (
-        <>
-          <h3>Publicar</h3>
-          <div className="box">
-            <div className="row">
-              <label>
-                Justificativa (obrigatória)
-                <textarea rows={2} value={just} onChange={(e) => { setJust(e.target.value); setFaltou(false); }} />
-              </label>
-              <label>
-                Início de vigência
-                <input type="datetime-local" value={vigencia} onChange={(e) => { setVigencia(e.target.value); setFaltou(false); }} />
-              </label>
-              <label>
-                Modo (escolha obrigatória)
-                <select value={modo} onChange={(e) => { setModo(e.target.value as "" | ModoPublicacao); setFaltou(false); }} aria-invalid={faltou && !modo}>
-                  <option value="">Escolha…</option>
-                  <option value="novas">Somente novas OS</option>
-                  <option value="reclassificar">Reclassificar as OS abertas</option>
-                </select>
-              </label>
+        <section className="page__section" aria-labelledby="pont-publicar">
+          <h2 id="pont-publicar" className="page__section-title">Publicar</h2>
+          <div className="card">
+            <div className="form-grid">
+              <CampoFormulario id="pub-just" rotulo="Justificativa" obrigatorio erro={faltas.just} className="form-grid__wide">
+                {(a) => <textarea {...a} className="control" rows={2} value={just} onChange={(e) => { setJust(e.target.value); setFaltas({}); }} />}
+              </CampoFormulario>
+              <CampoFormulario id="pub-vig" rotulo="Início de vigência" obrigatorio erro={faltas.vigencia}>
+                {(a) => <input {...a} className="control" type="datetime-local" value={vigencia} onChange={(e) => { setVigencia(e.target.value); setFaltas({}); }} />}
+              </CampoFormulario>
+              <CampoFormulario
+                id="pub-modo" rotulo="Modo" obrigatorio erro={faltas.modo}
+                dica={modo === "novas" ? "As OS que já existem continuam na versão em que foram calculadas."
+                  : modo === "reclassificar" ? "Quando a vigência chegar, as OS abertas serão recalculadas com esta versão; o resultado anterior permanece no histórico."
+                  : "Escolha explícita: não há valor padrão."}
+              >
+                {(a) => (
+                  <select {...a} className="control" value={modo} onChange={(e) => { setModo(e.target.value as "" | ModoPublicacao); setFaltas({}); }}>
+                    <option value="">Escolha…</option>
+                    <option value="novas">{MODO_PUBLICACAO.novas}</option>
+                    <option value="reclassificar">{MODO_PUBLICACAO.reclassificar}</option>
+                  </select>
+                )}
+              </CampoFormulario>
             </div>
-            {modo === "novas" && <p className="mu">As OS que já existem continuam na versão em que foram calculadas.</p>}
-            {modo === "reclassificar" && <p className="mu">Quando a vigência chegar, as OS abertas serão recalculadas com esta versão; o resultado anterior permanece no histórico.</p>}
-            {faltou && <div className="err" role="alert">Informe a justificativa e o início da vigência e escolha o modo (somente novas OS ou reclassificar as abertas).</div>}
-            {bloqueioPublicar && <p className="mu">{bloqueioPublicar}</p>}
-            <p>
-              <button className="btn-pr" onClick={aoPublicar} disabled={ocupado || !!bloqueioPublicar || !!estado.aguardando}>
-                {estado.exigirAprovacao ? "Enviar para aprovação" : "Publicar nova versão"}
+            <div className="card__footer">
+              <button
+                type="button" className="button button--primary" onClick={aoPublicar}
+                disabled={ocupado || !!bloqueioPublicar || !!estado.aguardando} aria-describedby={bloqueioPublicar ? "pub-bloqueio" : undefined}
+              >
+                <Icone de={Publish} />{estado.exigirAprovacao ? "Enviar para aprovação" : "Publicar nova versão"}
               </button>
-            </p>
+              {bloqueioPublicar && <span id="pub-bloqueio" className="button-group__note">{bloqueioPublicar}</span>}
+            </div>
           </div>
-        </>
+        </section>
       )}
 
-      <h3>Versões</h3>
-      <Versoes
-        estado={estado} podeEditar={podeEditar} podeAprovar={podeAprovar} atorId={atorId} ocupado={ocupado}
-        onRestaurar={(v) => { if (!sujo || window.confirm("Há alterações não salvas, que serão perdidas ao restaurar. Continuar?")) restaurar.mutate(v); }}
-        onAprovar={(v) => aprovar.mutate(v)}
-      />
+      <section className="page__section" aria-labelledby="pont-versoes">
+        <h2 id="pont-versoes" className="page__section-title">Versões</h2>
+        <Versoes
+          estado={estado} podeEditar={podeEditar} podeAprovar={podeAprovar} atorId={atorId} ocupado={ocupado}
+          onRestaurar={(v) => { if (!sujo || window.confirm("Há alterações não salvas, que serão perdidas ao restaurar. Continuar?")) restaurar.mutate(v); }}
+          onAprovar={(v) => aprovar.mutate(v)}
+        />
+      </section>
     </>
   );
 }

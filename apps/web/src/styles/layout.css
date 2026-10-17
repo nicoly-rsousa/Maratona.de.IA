@@ -1,0 +1,209 @@
+/* Layout da aplicação autenticada: cabeçalho, navegação lateral (barra horizontal abaixo de md = 768px) e conteúdo. */
+
+/* ── skip-link ── */
+.skip-link {
+  position: absolute;
+  left: var(--space-2);
+  top: -100px;
+  z-index: var(--z-skip-link);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: var(--space-2);
+}
+
+/* ── app-header ── */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  min-height: var(--header-height);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: auto;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.app-header__brand-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.app-header__tagline {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.app-header__context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.app-header__user {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.app-header__user-name {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.app-header__city {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.app-header__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ── app-layout ── */
+.app-layout {
+  display: flex;
+  min-height: calc(100vh - var(--header-height));
+}
+
+.app-layout__main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-6);
+}
+
+.app-layout__main:focus {
+  outline: none;
+}
+
+/* ── app-nav ── */
+.app-nav {
+  flex: 0 0 var(--nav-width);
+  padding: var(--space-4) var(--space-3);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border-subtle);
+}
+
+.app-nav__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.app-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.app-nav__link:hover {
+  background: var(--color-surface-alt);
+}
+
+/* indicador "carregando" no item clicado (useLinkStatus); com movimento reduzido fica um anel estático */
+.app-nav__pending {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  border: 2px solid var(--color-border-subtle);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: app-nav-girar 0.7s linear infinite;
+}
+
+@keyframes app-nav-girar {
+  to { transform: rotate(360deg); }
+}
+
+.app-nav__link--active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+@media (max-width: 767px) {
+  .app-header {
+    position: static;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .app-layout__main {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .app-nav {
+    flex: none;
+    padding: var(--space-2) var(--space-3);
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+    overflow-x: auto;
+  }
+
+  .app-nav__list {
+    flex-direction: row;
+  }
+
+  .app-nav__link--active {
+    box-shadow: inset 0 -3px 0 var(--color-primary);
+  }
+}
+
+/* ── page (área de conteúdo de cada tela) ── */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 1440px;
+}
+
+.page__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.page__section-title {
+  font-size: var(--font-size-md);
+}
+
+.page__section-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+}
