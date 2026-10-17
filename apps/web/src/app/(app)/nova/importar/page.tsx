@@ -18,9 +18,12 @@ const MOTIVO: Record<MotivoDuplicidade, string> = {
   mesmo_conjunto_e_tipo: "mesmo conjunto e tipo",
 };
 
-/** Modelo baixável: cabeçalho esperado + uma linha de exemplo. A cidade vem da seleção acima, não da planilha. */
+/** Colunas do modelo: todas as de COLUNAS_IMPORTACAO, exceto `cidade` — ela vem da seleção acima, nunca da planilha. */
+const COLUNAS_MODELO = COLUNAS_IMPORTACAO.filter((c) => c !== "cidade");
+
+/** Modelo baixável: cabeçalho esperado + uma linha de exemplo (mesma quantidade de campos do cabeçalho). */
 function baixarModelo() {
-  const linhas = [COLUNAS_IMPORTACAO.join(","), "Rua das Flores 100,,,1234,2010002,,,,Corretiva,"];
+  const linhas = [COLUNAS_MODELO.join(","), "Rua das Flores 100,,,1234,2010002,,,,Corretiva,"];
   const blob = new Blob([linhas.join("\n") + "\n"], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

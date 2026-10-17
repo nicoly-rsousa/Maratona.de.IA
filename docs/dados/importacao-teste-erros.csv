@@ -1,0 +1,8 @@
+cidade,endereco,lat,lng,transformador,uc,circuito,conjunto,exigeQualificacao,tipo,prazoH
+BH,,,,123456,2010002,,,,Corretiva,
+BH,Rua Sem Número,,,,123,,,,Corretiva,
+BH,Rua do Transformador Errado,,,AB12,,,,,Corretiva,
+BH,Rua da Coordenada Pela Metade,-19.91,,,,,,,Corretiva,
+BH,Rua do Tipo Inválido,,,,,,,,Urgente,
+BH,Rua da Latitude Quebrada,abc,-43.93,,,,,,Corretiva,
+BH,Rua Que Deu Certo 77,-19.90,-43.92,789012,5050005,,,,Corretiva,8

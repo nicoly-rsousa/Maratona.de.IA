@@ -210,9 +210,6 @@ export default function NovaSolicitacaoPage() {
   return (
     <>
       <h2>Nova solicitação</h2>
-      <p className="mu">
-        Tem várias para registrar de uma vez? <Link href="/nova/importar" className="text-ac underline">Importar de um arquivo CSV</Link>.
-      </p>
       <div className="box">
         <div className="row">
           <Campo id="n_cid" rotulo="Município">
@@ -317,6 +314,9 @@ export default function NovaSolicitacaoPage() {
         <button className="pr" disabled={ocupado || criterios.isPending || criterios.isError} onClick={registrar}>
           {criar.isPending ? "Registrando…" : ciente && sugestoes.length > 0 ? "Não é duplicada, criar nova OS" : "Registrar solicitação"}
         </button>
+        <p className="mu">
+          Tem várias para registrar de uma vez? <Link href="/nova/importar" className="text-ac underline">Importar de um arquivo CSV</Link>.
+        </p>
 
         {temChave && dup.isFetching && sugestoes.length === 0 && <p className="mu" role="status">Verificando duplicidade…</p>}
         {dup.isError && <p className="mu">Não foi possível verificar duplicidade agora; o registro continua disponível.</p>}
