@@ -33,7 +33,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto mt-16 w-[92%] max-w-sm">
-      <h1 className="mb-1 flex items-center gap-1.5 text-[15px] font-bold"><IconeFarol tamanho={20} />Farol</h1>
+      <h1 className="mb-1 flex items-center gap-1.5 text-[15px] font-bold"><IconeFarol tamanho={28} />Farol</h1>
       <p className="mu mb-3">Fila e despacho de ordens de serviço</p>
       <form onSubmit={entrar} className="box flex flex-col gap-3">
         {!supabaseConfigurado() && (
