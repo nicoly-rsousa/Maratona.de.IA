@@ -20,7 +20,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: temaInicial }} />
       </head>
-      <body>
+      {/* Extensões do navegador (ex.: ColorZilla → cz-shortcut-listen) injetam atributos no <body> antes do React;
+          suppressHydrationWarning ignora só a divergência de atributos deste elemento, não a dos filhos. */}
+      <body suppressHydrationWarning>
         {/* Estilos dos ícones MUI em @layer mui: as classes BEM do projeto (fora de layer) sempre prevalecem. */}
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <Providers>{children}</Providers>
