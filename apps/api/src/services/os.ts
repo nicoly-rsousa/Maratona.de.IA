@@ -1,9 +1,31 @@
-import { calcularPrioridade, fatosAutomaticos, statusInicial, validarFatos, type Fatos, type NovaOS } from "@farol/shared";
+import { calcularPrioridade, fatosAutomaticos, statusInicial, validarFatos, type CandidataDuplicidade, type Fatos, type NovaOS } from "@farol/shared";
 import { regrasEmVigor, versaoVigente } from "../config.js";
+<<<<<<< HEAD
 import { STATUS_FINAIS, db, type Linha } from "../db.js";
+=======
+import { db } from "../db.js";
+import { env } from "../env.js";
+>>>>>>> 70f612613baaea41e96096aa9c5b0e731ed1826e
 
 /** Entrada inválida (vira 400 na rota). */
 export class ErroDeEntrada extends Error {}
+
+/** OS abertas da cidade, na janela de duplicidade (§11): mesma consulta usada por GET /os/duplicidade e pela importação em lote. */
+export async function candidatasAbertasDaCidade(cidade: string): Promise<CandidataDuplicidade[]> {
+  const desde = new Date(Date.now() - env.DUP_JANELA_H * 3_600_000).toISOString();
+  const { data, error } = await db
+    .from("ordens_servico")
+    .select("id, numero, cidade_id, endereco, status, codigo, tipo, lat, lng, transformador, uc, conjunto, aberta_em")
+    .eq("cidade_id", cidade)
+    .not("status", "in", "(Concluída,Cancelada)")
+    .gte("aberta_em", desde)
+    .limit(1000);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((o) => ({
+    id: o.id, numero: o.numero, cidade: o.cidade_id, endereco: o.endereco, status: o.status, codigo: o.codigo, tipo: o.tipo,
+    lat: o.lat, lng: o.lng, transformador: o.transformador, uc: o.uc, conjunto: o.conjunto, abertaEmMs: Date.parse(o.aberta_em),
+  }));
+}
 
 /** OS abertas (todas as colunas), lidas em páginas: o PostgREST corta em 1000 linhas por consulta. */
 export async function lerAbertas(colunas = "*"): Promise<Linha[]> {

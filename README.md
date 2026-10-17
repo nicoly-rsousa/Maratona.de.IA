@@ -45,7 +45,8 @@ npm run dev        # Docker → Supabase local → banco → API (:3001) e site 
 `npm run dev` (`scripts/iniciar.mjs`) abre o Docker Desktop se precisar, sobe o Supabase local (`npx supabase start`;
 a 1ª vez baixa as imagens), roda `npm run db:local` e inicia API e site no mesmo terminal. Ctrl+C encerra API e site;
 o Supabase continua no ar (`npx supabase stop` desliga). Opções: `--sem-banco`, `--sem-navegador`
-(ex.: `npm run dev -- --sem-banco`).
+(ex.: `npm run dev -- --sem-banco`). Se `apps/api/.env` aponta para um Supabase **na nuvem**, `npm run dev` pula Docker,
+Supabase local e `db:local` (não escreve nada nesse banco) e só sobe API e site.
 
 `npm run db:local` (`scripts/db-local.mjs`, idempotente, só fala com `127.0.0.1`) aplica `0001 → seed.sql → 0002 … 0007`
 nessa ordem (por isso o `supabase/config.toml` desliga a aplicação automática do CLI), cria os usuários de teste

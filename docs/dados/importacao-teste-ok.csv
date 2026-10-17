@@ -1,0 +1,6 @@
+cidade,endereco,lat,lng,transformador,uc,circuito,conjunto,exigeQualificacao,tipo,prazoH
+BH,Rua das Acácias 120,-19.9120,-43.9380,123456,2010002,CIR-01,CJ-10,,Corretiva,
+BH,Avenida Central 500,,,654321,3050099,CIR-02,CJ-11,Linha viva,Preventiva,240
+BH,Rua do Cruzeiro 45,-19.9050,-43.9410,123456,,CIR-01,CJ-10,,Corretiva,4
+BH,Travessa das Palmeiras 8,,,,4010010,,,,Corretiva,
+BH,Rua do Cruzeiro 45,-19.9050,-43.9410,,4010010,,,,Corretiva,

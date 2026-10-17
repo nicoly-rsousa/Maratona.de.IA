@@ -3,12 +3,14 @@
 //   2. Supabase local: `npx supabase start` se ainda não estiver rodando.
 //   3. Banco: `scripts/db-local.mjs` (idempotente: migrations, usuários de teste, .env e dados demonstrativos).
 //   4. API (:3001) e site (:3000) juntos neste terminal, com a saída prefixada; abre o navegador quando estiverem prontos.
-// Ctrl+C encerra API e site. O Supabase continua no ar (para desligar: npx supabase stop).
+// Se apps/api/.env aponta para um Supabase na NUVEM, os passos 1–3 são pulados (nada é escrito nesse banco).
+// Ctrl+C encerra API e site. O Supabase local continua no ar (para desligar: npx supabase stop).
 // Opções: --sem-banco (pula o passo 3)  --sem-navegador (não abre o navegador)
 import { execSync, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { connect } from "node:net";
 import { fileURLToPath } from "node:url";
+import { parseEnv } from "node:util";
 
 const raiz = fileURLToPath(new URL("..", import.meta.url));
 const windows = process.platform === "win32";
@@ -23,38 +25,55 @@ function roda(cmd) {
   try { execSync(cmd, { cwd: raiz, stdio: "ignore" }); return true; } catch { return false; }
 }
 
-// Instalação recente do Docker Desktop no Windows: o terminal atual pode não ter o executável no PATH.
-const DOCKER_BIN = "C:\\Program Files\\Docker\\Docker\\resources\\bin";
-const DOCKER_APP = "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe";
-if (windows && existsSync(DOCKER_BIN) && !process.env.PATH.toLowerCase().includes(DOCKER_BIN.toLowerCase())) {
-  process.env.PATH = `${DOCKER_BIN};${process.env.PATH}`;
-}
+// Para onde a API aponta: sem apps/api/.env, o db-local cria um apontando para o Supabase local.
+const lerEnv = (f) => (existsSync(`${raiz}/${f}`) ? parseEnv(readFileSync(`${raiz}/${f}`, "utf8")) : null);
+const envApi = lerEnv("apps/api/.env");
+const local = !envApi?.SUPABASE_URL || /\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(envApi.SUPABASE_URL);
 
-// ── 1. Docker ──
-passo("Docker");
-if (!roda("docker info")) {
-  if (!windows || !existsSync(DOCKER_APP)) falhar("O Docker não está rodando. Abra o Docker e rode `npm run dev` de novo.");
-  console.log("  abrindo o Docker Desktop…");
-  spawn(DOCKER_APP, [], { detached: true, stdio: "ignore" }).unref();
-  let pronto = false;
-  for (let i = 0; i < 60 && !pronto; i++) { await espera(3000); pronto = roda("docker info"); }
-  if (!pronto) falhar("O Docker não ficou pronto em 3 minutos. Abra o Docker Desktop, aceite os termos se pedir, e tente de novo.");
-}
-console.log("  ✓ engine no ar");
-
-// ── 2. Supabase local ──
-passo("Supabase local");
-if (roda("npx supabase status")) {
-  console.log("  ✓ já estava no ar");
+if (!local) {
+  const envWeb = lerEnv("apps/web/.env.local");
+  passo(`Supabase na nuvem (${new URL(envApi.SUPABASE_URL).host}): Docker, Supabase local e db:local pulados`);
+  if (!envApi.SUPABASE_SERVICE_ROLE_KEY) falhar("apps/api/.env sem SUPABASE_SERVICE_ROLE_KEY.");
+  if (!envWeb?.NEXT_PUBLIC_SUPABASE_URL || !envWeb.NEXT_PUBLIC_SUPABASE_ANON_KEY) falhar("apps/web/.env.local sem NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  if (envWeb.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "") !== envApi.SUPABASE_URL.replace(/\/$/, "")) {
+    falhar("apps/api/.env e apps/web/.env.local apontam para projetos Supabase diferentes.");
+  }
 } else {
-  try { execSync("npx supabase start", { cwd: raiz, stdio: "inherit" }); } catch { falhar("`npx supabase start` falhou (veja a mensagem acima)."); }
-}
+  // Instalação recente do Docker Desktop no Windows: o terminal atual pode não ter o executável no PATH.
+  const DOCKER_BIN = "C:\\Program Files\\Docker\\Docker\\resources\\bin";
+  const DOCKER_APP = "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe";
+  if (windows && existsSync(DOCKER_BIN) && !process.env.PATH.toLowerCase().includes(DOCKER_BIN.toLowerCase())) {
+    process.env.PATH = `${DOCKER_BIN};${process.env.PATH}`;
+  }
 
-// ── 3. Banco ──
-if (args.has("--sem-banco")) {
-  passo("Banco: pulado (--sem-banco)");
-} else {
-  try { execSync("node scripts/db-local.mjs", { cwd: raiz, stdio: "inherit" }); } catch { falhar("A preparação do banco falhou (veja a mensagem acima)."); }
+  // ── 1. Docker ──
+  passo("Docker");
+  if (!roda("docker info")) {
+    if (!windows || !existsSync(DOCKER_APP)) {
+      falhar("O Docker não está rodando nem instalado. Instale/abra o Docker Desktop, ou aponte apps/api/.env e apps/web/.env.local para um Supabase na nuvem.");
+    }
+    console.log("  abrindo o Docker Desktop…");
+    spawn(DOCKER_APP, [], { detached: true, stdio: "ignore" }).unref();
+    let pronto = false;
+    for (let i = 0; i < 60 && !pronto; i++) { await espera(3000); pronto = roda("docker info"); }
+    if (!pronto) falhar("O Docker não ficou pronto em 3 minutos. Abra o Docker Desktop, aceite os termos se pedir, e tente de novo.");
+  }
+  console.log("  ✓ engine no ar");
+
+  // ── 2. Supabase local ──
+  passo("Supabase local");
+  if (roda("npx supabase status")) {
+    console.log("  ✓ já estava no ar");
+  } else {
+    try { execSync("npx supabase start", { cwd: raiz, stdio: "inherit" }); } catch { falhar("`npx supabase start` falhou (veja a mensagem acima)."); }
+  }
+
+  // ── 3. Banco ──
+  if (args.has("--sem-banco")) {
+    passo("Banco: pulado (--sem-banco)");
+  } else {
+    try { execSync("node scripts/db-local.mjs", { cwd: raiz, stdio: "inherit" }); } catch { falhar("A preparação do banco falhou (veja a mensagem acima)."); }
+  }
 }
 
 // ── 4. API e site ──

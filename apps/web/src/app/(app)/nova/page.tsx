@@ -244,6 +244,7 @@ export default function NovaSolicitacaoPage() {
 
   return (
     <>
+<<<<<<< HEAD
       {cabecalho}
       <form className="card" onSubmit={registrar} noValidate aria-label="Nova solicitação">
         <fieldset className="form-group">
@@ -277,6 +278,146 @@ export default function NovaSolicitacaoPage() {
               cidade={cidade} cidadeNome={nomeDaCidade(cidade, cidades)} ponto={ponto}
               onEscolher={(p) => { mudar(setLat)(String(p.lat)); mudar(setLng)(String(p.lng)); }}
             />
+=======
+      <h2>Nova solicitação</h2>
+      <div className="box">
+        <div className="row">
+          <Campo id="n_cid" rotulo="Município">
+            <select id="n_cid" value={cidade} onChange={(e) => { mudar(setCidadeSel)(e.target.value); setEscolhas({}); setQualificacao(""); }}>
+              {cidades.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+          </Campo>
+          <Campo id="n_end" rotulo="Endereço" className="min-w-[220px] flex-1">
+            <input id="n_end" value={endereco} onChange={(e) => mudar(setEndereco)(e.target.value)} autoComplete="off" />
+          </Campo>
+          <Campo id="n_lat" rotulo="Coord. Latitude">
+            <input id="n_lat" className="w-[80px]" value={lat} onChange={(e) => mudar(setLat)(e.target.value)} inputMode="decimal" autoComplete="off" placeholder="-19.9167" />
+          </Campo>
+          <Campo id="n_lng" rotulo="Longitude">
+            <input id="n_lng" className="w-[80px]" value={lng} onChange={(e) => mudar(setLng)(e.target.value)} inputMode="decimal" autoComplete="off" placeholder="-43.9345" />
+          </Campo>
+          <Campo id="n_tr" rotulo="Transformador (texto, ≥ 4 dígitos)">
+            <input id="n_tr" value={transformador} onChange={(e) => mudar(setTransformador)(e.target.value)} inputMode="numeric" autoComplete="off" />
+          </Campo>
+          <Campo id="n_uc" rotulo="UC (6–10 dígitos)">
+            <input id="n_uc" value={uc} onChange={(e) => mudar(setUc)(e.target.value)} inputMode="numeric" autoComplete="off" />
+          </Campo>
+          <Campo id="n_circ" rotulo="Circuito (opcional)">
+            <input id="n_circ" value={circuito} onChange={(e) => mudar(setCircuito)(e.target.value)} />
+          </Campo>
+          <Campo id="n_conj" rotulo="Conjunto (opcional)">
+            <input id="n_conj" value={conjunto} onChange={(e) => mudar(setConjunto)(e.target.value)} />
+          </Campo>
+          <Campo id="n_tipo" rotulo="Tipo">
+            <select id="n_tipo" value={tipo} onChange={(e) => mudar(setTipo)(e.target.value as typeof tipo)}>
+              {(criterios.data?.tipos ?? TIPOS_MANUTENCAO).map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </Campo>
+          <Campo id="n_prazo" rotulo="Prazo-limite (h, vazio = sem)">
+            <input id="n_prazo" className="w-[90px]" value={prazoH} onChange={(e) => mudar(setPrazoH)(e.target.value)} inputMode="decimal" autoComplete="off" />
+          </Campo>
+          <Campo id="n_qual" rotulo="Exige qualificação">
+            <select id="n_qual" value={qualificacao} onChange={(e) => mudar(setQualificacao)(e.target.value)}>
+              <option value="">Nenhuma</option>
+              {(criterios.data?.qualificacoes ?? []).map((q) => <option key={q}>{q}</option>)}
+            </select>
+          </Campo>
+        </div>
+        <p className="mu">Sozinho não indica duplicidade (§11); informe também UC, transformador ou coordenadas.</p>
+        <p className="mu">Sem localização válida a OS entra Em triagem.</p>
+
+        {digitouCoord && semLocal && (
+          <div className="warn" role="status">Coordenadas incompletas ou inválidas: latitude de -90 a 90 e longitude de -180 a 180 (graus decimais, com ponto).</div>
+        )}
+        <p>
+          <button type="button" aria-expanded={mostrarMapa} onClick={() => setMostrarMapa((v) => !v)}>
+            {mostrarMapa ? "Ocultar o mapa" : "Escolher o ponto no mapa"}
+          </button>
+          <span className="mu"> Também dá para digitar latitude e longitude acima.</span>
+        </p>
+        {mostrarMapa && (
+          mapa.isPending ? (
+            <Carregando texto="Carregando o mapa…" />
+          ) : mapa.isError ? (
+            <ErroApi erro={mapa.error} titulo="Não foi possível carregar o mapa." onRetry={() => mapa.refetch()} />
+          ) : mapa.data && (
+            <>
+              <p className="mu">Clique no mapa para preencher latitude e longitude. O círculo mostra o raio de {mapa.data.raioM} m da sugestão de duplicidade; os pontos coloridos são as OS abertas.</p>
+              <Mapa
+                os={mapa.data.os} equipes={[]} mostrarEquipes={false} selecionadaId={null}
+                raioM={mapa.data.raioM} centro={mapa.data.centro} chave={cidade} rotulo={`Mapa para escolher o local em ${cidade}`}
+                altura={340} ponto={ponto}
+                onClicar={(p) => { mudar(setLat)(String(p.lat)); mudar(setLng)(String(p.lng)); }}
+              />
+            </>
+          )
+        )}
+
+        <h3>Critérios de prioridade{criterios.data && <span className="mu font-normal"> — versão v{criterios.data.versao} publicada</span>}</h3>
+        {criterios.isPending ? (
+          <Carregando texto="Carregando critérios da versão publicada…" />
+        ) : criterios.isError ? (
+          <ErroApi erro={criterios.error} titulo="Não foi possível carregar os critérios." onRetry={() => criterios.refetch()} />
+        ) : (
+          <>
+            <div className="row">
+              {perguntas.map((p) => {
+                const id = `n_${p.id}`;
+                const sel = p.opcoes.find((o) => o.label === valorDe(p.id));
+                return (
+                  <Campo key={p.id} id={id} rotulo={p.nome}>
+                    <span className="flex items-center gap-1">
+                      {/* §3: dado não informado nunca vale zero; o valor inicial é a opção "Desconhecido" (valorInicial). */}
+                      <select id={id} value={valorDe(p.id)} aria-describedby={sel?.requerConfirmacao ? `${id}_rc` : undefined} onChange={(e) => mudar((v: string) => setEscolhas((x) => ({ ...x, [p.id]: v })))(e.target.value)}>
+                        {!p.opcoes.some((o) => o.desconhecida) && <option value="">Não informado</option>}
+                        {desconhecidaPorUltimo(p.opcoes).map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
+                      </select>
+                      {sel?.requerConfirmacao && <span id={`${id}_rc`} className="mu" title="requer confirmação"><span aria-hidden="true">*</span><span className="sr-only">requer confirmação</span></span>}
+                    </span>
+                  </Campo>
+                );
+              })}
+            </div>
+            <p className="mu">Não sabe um dado? Deixe a opção &quot;Desconhecido&quot;: ela soma pontos e pede confirmação, nunca vale zero. Tempo de espera e prazo são calculados pelo sistema.</p>
+          </>
+        )}
+        <button className="pr" disabled={ocupado || criterios.isPending || criterios.isError} onClick={registrar}>
+          {criar.isPending ? "Registrando…" : ciente && sugestoes.length > 0 ? "Não é duplicada, criar nova OS" : "Registrar solicitação"}
+        </button>
+        <p className="mu">
+          Tem várias para registrar de uma vez? <Link href="/nova/importar" className="text-ac underline">Importar de um arquivo CSV</Link>.
+        </p>
+
+        {temChave && dup.isFetching && sugestoes.length === 0 && <p className="mu" role="status">Verificando duplicidade…</p>}
+        {dup.isError && <p className="mu">Não foi possível verificar duplicidade agora; o registro continua disponível.</p>}
+        {sugestoes.length > 0 && (
+          <div className="warn" role="alert">
+            <b>Possível duplicidade (sugestão, nunca automática).</b> OS abertas da mesma cidade nas últimas horas:
+            <div className="tw">
+              <table className="tabela">
+                <tbody>
+                  {sugestoes.map((s) => (
+                    <tr key={s.id}>
+                      <td><Link href={`/os/${s.id}`} target="_blank" className="m text-ac underline">{s.numero}</Link></td>
+                      <td><Pill codigo={s.codigo} /></td>
+                      <td>{s.endereco}</td>
+                      <td className="m">
+                        {s.distanciaM != null && `${s.distanciaM} m · `}{s.motivos.map((m) => MOTIVO[m]).join(", ")}
+                        {s.mesmoEndereco && " · mesmo endereço"}
+                      </td>
+                      <td className="m">{s.status} · há {minutosDesde(new Date(s.abertaEmMs).toISOString())} min</td>
+                      <td><button disabled={ocupado} onClick={() => vincular.mutate(s.id)}>Vincular a esta OS</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="row">
+              <Campo id="n_obs" rotulo="Observação para o vínculo (opcional)">
+                <input id="n_obs" value={observacao} maxLength={500} onChange={(e) => setObservacao(e.target.value)} />
+              </Campo>
+            </div>
+>>>>>>> 70f612613baaea41e96096aa9c5b0e731ed1826e
           </div>
         </fieldset>
 
