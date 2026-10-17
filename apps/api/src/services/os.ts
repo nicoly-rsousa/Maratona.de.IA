@@ -44,32 +44,21 @@ export async function criarOS(d: NovaOS, opts: { abertaEmMs?: number; demo?: boo
   const fatos: Fatos = { ...d.fatos, tipo: d.tipo, ...fatosAutomaticos({ aberturaMs: abertaEmMs, prazoH: d.prazoH }, agora) };
   const r = calcularPrioridade(fatos, versao, regras);
 
-  const { data: num, error: e1 } = await db.rpc("proximo_numero_os", { p_cidade: d.cidade });
-  if (e1) throw new Error(e1.message);
-
-  const { data: os, error: e2 } = await db.from("ordens_servico").insert({
-    numero: num, cidade_id: d.cidade, endereco: d.endereco, lat: d.lat ?? null, lng: d.lng ?? null,
-    transformador: d.transformador ?? null, uc: d.uc ?? null, circuito: d.circuito ?? null, conjunto: d.conjunto ?? null,
-    exige_qualificacao: d.exigeQualificacao ?? null, demo: opts.demo ?? false,
-    tipo: d.tipo, fatos: d.fatos,
-    prazo_limite: d.prazoH == null ? null : new Date(agora + d.prazoH * 3_600_000).toISOString(),
-    status: statusInicial(d.lat, d.lng), // §14.7
-    versao_pontuacao_id: versaoId, regras_versao: regrasVersao, nivel: r.nivel, codigo: r.codigo, pontos: r.pontos,
-    aberta_em: new Date(abertaEmMs).toISOString(),
-  }).select().single();
-  if (e2 || !os) throw new Error(e2?.message ?? "Falha ao gravar a OS.");
-
-  const { error: e3 } = await db.from("resultados_prioridade").insert({
-    os_id: os.id, versao: r.versao, itens: r.itens, pontos: r.pontos, codigo_faixa: r.codigoFaixa,
-    regras_aplicadas: r.regrasAplicadas, nivel: r.nivel, codigo: r.codigo,
-    motivo_principal: r.motivoPrincipal, motivo_calculo: "Abertura",
+  // Grava OS + resultado de prioridade + solicitação de abertura numa única transação no Postgres
+  // (P-04): os 3 inserts viviam soltos aqui, e uma falha no 2º/3º deixava a OS inconsistente.
+  const { data: os, error } = await db.rpc("criar_os", {
+    p_os: {
+      cidade: d.cidade, endereco: d.endereco, lat: d.lat ?? null, lng: d.lng ?? null,
+      transformador: d.transformador ?? null, uc: d.uc ?? null, circuito: d.circuito ?? null, conjunto: d.conjunto ?? null,
+      exigeQualificacao: d.exigeQualificacao ?? null, demo: opts.demo ?? false,
+      tipo: d.tipo, fatos: d.fatos,
+      prazoLimite: d.prazoH == null ? null : new Date(agora + d.prazoH * 3_600_000).toISOString(),
+      status: statusInicial(d.lat, d.lng), // §14.7
+      versaoPontuacaoId: versaoId, regrasVersao, abertaEm: new Date(abertaEmMs).toISOString(),
+    },
+    p_resultado: r,
+    p_usuario: opts.usuario ?? null,
   });
-  if (e3) throw new Error(`OS ${os.numero} criada, mas o resultado de prioridade falhou: ${e3.message}`);
-
-  const { error: e4 } = await db.from("solicitacoes").insert({
-    os_id: os.id, cidade_id: os.cidade_id, origem: "abertura", endereco: d.endereco, lat: d.lat ?? null, lng: d.lng ?? null,
-    transformador: d.transformador ?? null, uc: d.uc ?? null, fatos: d.fatos, criado_por: opts.usuario ?? null, criado_em: os.aberta_em,
-  });
-  if (e4) throw new Error(`OS ${os.numero} criada, mas a solicitação de abertura falhou: ${e4.message}`);
+  if (error || !os) throw new Error(error?.message ?? "Falha ao gravar a OS.");
   return { os, resultado: r };
 }
