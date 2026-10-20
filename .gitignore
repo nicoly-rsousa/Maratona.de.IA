@@ -5,7 +5,22 @@ dist
 .env
 .env.*
 !.env.example
+!.env.teste.example
 
 # ferramentas locais de agente
 .agents/
 skills-lock.json
+
+# Farol v2: dados de origem (podem conter dado pessoal; nunca versionar)
+docs/dados/*.csv
+docs/dados/*.xlsx
+docs/dados/relatorio-*
+!docs/dados/regional.csv
+!docs/dados/importacao-teste-ok.csv
+!docs/dados/importacao-teste-erros.csv
+docs/dados/tracado/
+docs/dados/*.zip
+
+# Supabase local (Docker): credenciais locais ficam fora do Git; só o exemplo é versionado
+.env.docker
+!.env.docker.example

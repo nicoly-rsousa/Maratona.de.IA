@@ -1,16 +1,28 @@
 {
   "name": "farol",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "test": "npm run test -w @farol/shared",
+    "test": "npm run test -w @farol/shared && npm run test -w @farol/api",
+    "test:integracao": "npm run test:integracao -w @farol/api",
     "dev:api": "npm run dev -w @farol/api",
     "build:api": "npm run build -w @farol/api",
+    "importar:v2": "node scripts/importar-v2/importar.mjs",
+    "test:importar": "node --test scripts/importar-v2/importar.test.mjs",
     "seed": "npm run seed -w @farol/api",
     "seed:os": "npm run seed:os -w @farol/api",
     "seed:cr": "npm run seed:cr -w @farol/api",
     "dev:web": "npm run dev -w @farol/web",
     "build:web": "npm run build -w @farol/web",
     "typecheck": "npm run typecheck -w @farol/shared && npm run typecheck -w @farol/api && npm run typecheck -w @farol/web"
+  },
+  "devDependencies": {
+    "csv-parse": "^7.0.3",
+    "exceljs": "^4.4.0",
+    "iconv-lite": "^0.7.3",
+    "proj4": "^2.22.0"
   }
 }
