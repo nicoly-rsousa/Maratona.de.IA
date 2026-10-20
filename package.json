@@ -6,7 +6,7 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "npm run test -w @farol/shared && npm run test -w @farol/api",
+    "test": "npm run test -w @farol/shared && npm run test -w @farol/api && npm run test -w @farol/web",
     "test:integracao": "npm run test:integracao -w @farol/api",
     "dev:api": "npm run dev -w @farol/api",
     "build:api": "npm run build -w @farol/api",
