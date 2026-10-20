@@ -56,6 +56,9 @@ No SQL Editor do Supabase, **nesta ordem** (cada migration é idempotente, excet
 | 4 | `supabase/migrations/0003_endurecimento.sql` | RLS, privilégios, checks e `search_path` |
 | 5 | `supabase/migrations/0004_status_despacho.sql` | status e despacho transacionais, eventos |
 | 6 | `supabase/migrations/0005_pontuacao.sql` | `configuracoes` e funções de rascunho, publicação, aprovação e restauração |
+| 7 | `supabase/migrations/0006…0007` | edição de regras e mínimos (ver o cabeçalho de cada arquivo) |
+| 8 | `supabase/migrations/0008_rede_geo.sql` | Farol v2: PostGIS, circuitos, chaves, transformadores, regional, OS importadas, sugestões de carona |
+| 9 | `supabase/migrations/0009_rede_tracado.sql` | Farol v2: traçado dos alimentadores, configuração do mapa/raio e funções de consulta |
 
 Depois, os dados demonstrativos (a API precisa estar configurada com o `.env`):
 
@@ -67,6 +70,37 @@ npm run seed:cr    # OS dos cenários CR-01 a CR-04 em BH (demo=true, idempotent
 
 Usuários de teste (um por perfil): crie as contas em Authentication e rode `docs/usuarios-de-teste.sql`.
 Ajustes em `configuracoes`: `pontuacao.max_pontos` (padrão 100) e `pontuacao.exigir_aprovacao` (padrão `false`).
+
+## Teste local do Farol v2 (rede, traçado e mapa) com Docker
+
+Tudo roda num Supabase **local**, sem tocar em nenhum banco remoto. O importador (`scripts/importar-v2`) só aceita gravar
+quando `SUPABASE_URL` aponta para `127.0.0.1` ou `localhost` (portas 54321/54322); qualquer outro host, inclusive `supabase.co`,
+aborta antes de ler arquivos ou abrir conexão.
+
+1. **Docker Desktop** instalado e em execução.
+2. **Iniciar o Supabase local** (a primeira vez baixa as imagens; use `npx supabase init` antes se ainda não houver `supabase/config.toml`, sem sobrescrever as migrations):
+   ```bash
+   npx supabase start
+   npx supabase status -o env      # mostra API_URL e SERVICE_ROLE_KEY locais
+   ```
+3. **Credenciais locais**: `cp .env.docker.example .env.docker` e cole a `SERVICE_ROLE_KEY` local. O arquivo `.env.docker` está no `.gitignore`.
+4. **Montar o banco local** (aplica `supabase/migrations/*` em ordem, incluindo 0008 e 0009, e depois `seed.sql`):
+   ```bash
+   npx supabase db reset           # APAGA e recria o banco LOCAL
+   ```
+5. **Teste SQL da busca por raio** (transação com ROLLBACK, não deixa nada no banco):
+   ```bash
+   psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/rede_raio.sql
+   ```
+6. **Importar** os dados de `docs/dados` (ficam só na sua máquina; nada de dado pessoal sai do script). Primeiro o modo de teste, sem banco:
+   ```bash
+   npm run importar:v2                                              # relatório de qualidade, não grava
+   node --env-file=.env.docker scripts/importar-v2/importar.mjs --gravar   # grava no banco LOCAL
+   node --env-file=.env.docker scripts/importar-v2/importar.mjs --atualizar-regional --gravar   # só regional.csv → tabela regional
+   ```
+7. **Testes**: `npm test && npm run test:importar && npm run typecheck`.
+
+Para parar: `npx supabase stop`. `docs/dados` (CSV, XLSX, traçado) e `.env.docker` nunca vão para o Git.
 
 ## Subir no ar
 

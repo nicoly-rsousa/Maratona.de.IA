@@ -102,3 +102,57 @@ Sugestão (nunca automática) para OS abertas da mesma cidade nas últimas 24 h 
 5. Situação "desligado" vale menos que "ligado" na pontuação demonstrativa — a operação deve decidir o sentido real deste critério.
 6. Calendário útil (08h–18h, seg–sex) e feriados nacionais fixos; feriados móveis e municipais devem ser cadastrados.
 7. Nova OS nasce "Aguardando despacho", ou "Em triagem" quando falta localização.
+15. Alimentadores, proximidade e mapa (v2 — planejado)
+
+Seção nova. Não altera as seções 1 a 14. Numere a partir da próxima seção livre do arquivo. Valores e limites aqui são demonstrativos e não oficiais até a operação validar. Itens [A CONFIRMAR] não são decisão.
+
+15.1 Alimentador da OS
+O alimentador da OS é o circuito. Na importação, vem do campo CodSetor da OS.
+Origem do circuito registrada em cada OS: importado, não identificado (código que não existe nas bases) ou informado/confirmado pela operação.
+Código que não casa com a rede (ex.: CET-LUM 2) não é corrigido automaticamente: a OS fica com circuito "não identificado" e entra no relatório de qualidade.
+Correção manual do circuito por Supervisor, com justificativa e registro em auditoria [A CONFIRMAR].
+Esta regra complementa a seção 12 (circuito/conjunto) e não a substitui: o conjunto continua precisando pertencer ao circuito.
+15.2 Alimentador no mapa
+Selecionar um circuito mostra: suas OS (na ordem da fila), seus transformadores e chaves, e a contagem de clientes (total, ligados, desligados).
+O contorno do circuito é aproximado (envoltória dos pontos) e deve ser rotulado assim. Traçado real só com geometria confiável [A CONFIRMAR].
+Dados de clientes mostrados são agregados; nenhum dado pessoal é exibido.
+Informação ausente (circuito sem clientes, transformador sem coordenada) aparece como "desconhecido", nunca como zero (seção 3).
+Elementos são carregados por circuito, sob demanda; o mapa não desenha toda a rede de uma vez.
+15.3 Carona (serviços próximos)
+Critério: depois de analisar o alimentador, listar OS abertas de outros circuitos dentro do raio.
+Raio inicial 1 km, ajustável pelo usuário até um limite máximo configurável por administrador (valor inicial demonstrativo [A CONFIRMAR]).
+Distância em linha reta, sem rota nem tempo.
+Ordenação da lista: distância; em empate, a ordem da fila (seção 2).
+A proximidade nunca altera a prioridade, a pontuação nem a posição na fila. Ela só gera sugestão.
+"Sugerir junto" apenas registra a sugestão (quem, quando, OS de origem, OS sugerida, raio usado). Não designa equipe nem muda o status. A decisão de despacho continua com o usuário.
+OS concluídas ou canceladas não entram. OS sem coordenada não participam da busca, mas são sinalizadas (não somem da lista do circuito).
+OS marcada como fora do retângulo do seu circuito exibe alerta de localização duvidosa; não é bloqueada (mesmo princípio da seção 12).
+15.4 Filtros
+Filtro por regional, a partir da tabela regional (município → regional), cadastrada por administrador.
+Regional vazia = filtro "não configurado"; as OS continuam visíveis. Filtrar nunca remove a visão geral da operação.
+Segundo filtro citado na reunião: [A CONFIRMAR].
+15.5 Relação com a duplicidade (seção 11)
+Raio de 300 m (duplicidade) e raio de 1 km (carona) são independentes. Duplicidade sugere unificar a mesma ocorrência; carona sugere executar serviços diferentes na mesma saída.
+Uma OS sugerida como carona não é candidata a unificação por esse motivo.
+15.6 Perfis (acrescenta à seção 13)
+Neste módulo (mapa da rede, busca por proximidade e sugestão de carona) só o Administrador acessa e sugere. Decisão vigente nesta fase; substitui a tabela anterior (que liberava Despachante, Supervisor e Atendente).
+Perfil	Permissão no módulo da rede
+Administrador	único perfil com acesso: consultar a rede, buscar por proximidade e registrar sugestão de carona; configurar raio máximo e cadastrar regional
+Equipe de campo	sem acesso: 403 em todas as rotas da rede
+Supervisor, Despachante, Atendente, Usuário Chave	sem acesso nesta fase: negados por não constarem na lista (403)
+A regra é configuração, não código: rede.perfis_com_acesso (quem acessa a rede) e rede.perfis_sugerir_carona (quem registra sugestão), ambas hoje só com o Administrador. Ampliar o acesso no futuro é mudar a configuração, sem alterar a API.
+A API aplica a regra em cada rota (ela usa service_role e ignora a RLS) e lê a configuração a cada requisição, sem cache. Se a configuração estiver ausente, ilegível ou falhar a leitura, o acesso é NEGADO. A negação é registrada na auditoria. A RLS do banco aplica a mesma lista como defesa em profundidade.
+Esta seção não altera os perfis nem as permissões dos demais módulos (fila, despacho, pontuação, precedência, mapa de OS).
+Sugestão simétrica: A→B e B→A são a mesma sugestão (par não ordenado); o par só pode ser registrado uma vez.
+15.7 Origem e rastreabilidade dos dados
+Toda base importada registra fonte, arquivo e data da importação.
+Cada OS guarda a origem da coordenada (origem_geo): convertida de UTM, informada ou desconhecida.
+Dados públicos externos (ANEEL/BDGD) só entram depois de verificar disponibilidade, cobertura e data de atualização.
+15.8 Premissas a confirmar com a operação
+Nome e função do segundo filtro.
+Limite máximo do raio de carona.
+Quem pode corrigir o circuito de uma OS.
+Traçado real do alimentador: existe geometria utilizável?
+Origem oficial da regional.
+Permissões de Atendente e Equipe de campo na carona.
+Mapa da prioridade legada da OS para os códigos do Farol (demonstrativo).
