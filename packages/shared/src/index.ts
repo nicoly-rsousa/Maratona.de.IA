@@ -15,3 +15,4 @@ export * from "./mapa";
 export * from "./cenarios";
 export * from "./regras";
 export * from "./regras-edicao";
+export * from "./rede";

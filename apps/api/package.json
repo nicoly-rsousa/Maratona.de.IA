@@ -12,6 +12,8 @@
     "seed": "tsx --env-file=.env src/seed.ts",
     "seed:os": "tsx --env-file=.env src/seed-os.ts",
     "seed:cr": "tsx --env-file=.env src/seed-cr.ts",
+    "test": "vitest run",
+    "test:integracao": "node --env-file=../../.env.docker ../../node_modules/vitest/vitest.mjs run --config vitest.integracao.config.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
@@ -25,6 +27,7 @@
     "@types/node": "^22.9.0",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
   }
 }
