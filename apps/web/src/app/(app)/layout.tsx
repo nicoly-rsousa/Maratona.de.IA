@@ -27,6 +27,8 @@ const ITENS: { rotulo: string; href?: string; perm?: string[]; semPerfis?: strin
   { rotulo: "Pontuação", href: "/pontuacao", perm: ["pontuacao", "pontuacao_aprovar"] },
   { rotulo: "Precedência", href: "/precedencia", perm: ["regras", "consultar"], semPerfis: ["Usuário Chave", "Equipe de campo"] },
   { rotulo: "Mapa", href: "/mapa", perm: ["consultar"] },
+  // Aparece para todos com `consultar`; quem pode usar a rede é decidido pelo servidor (/rede/config → 403 vira mensagem na própria tela).
+  { rotulo: "Mapa da rede", href: "/rede", perm: ["consultar"] },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -66,7 +68,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {ready && (
           <label className="mu flex items-center gap-1">
             Cidade
-            <select value={cidade} onChange={(e) => { setEscolhida(e.target.value); if (path !== "/fila" && path !== "/mapa") router.push("/fila"); }}>
+            <select value={cidade} onChange={(e) => { setEscolhida(e.target.value); if (path !== "/fila" && path !== "/mapa" && path !== "/rede") router.push("/fila"); }}>
               {cidades.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
               {ator.todasCidades && <option value="*">Todas as cidades</option>}
             </select>
