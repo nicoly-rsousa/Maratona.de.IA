@@ -8,6 +8,8 @@ export * from "./detalhe";
 export * from "./solicitacao";
 export * from "./duplicidade";
 export * from "./importacao";
+export * from "./importacao-os-pendente";
+export * from "./codigo-cidade";
 export * from "./despacho";
 export * from "./versionamento";
 export * from "./pontuacao";

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { CIDADE_MAPA_RE, escopoDoMapa, type EquipeMapa, type OSMapa, type RespostaMapa } from "@farol/shared";
 import { auditar, exigir } from "../auth.js";
 import { db } from "../db.js";
@@ -11,7 +12,13 @@ export async function rotasMapa(app: FastifyInstance) {
   app.get("/mapa", async (req, reply) => {
     if (!(await exigir(req, reply, "consultar"))) return;
     const a = req.ator!;
-    const { cidade } = (req.query ?? {}) as { cidade?: string };
+    const consulta = z.object({
+      cidade: z.string().trim().min(2).optional(),
+      alimentador: z.string().trim().min(1).max(64).optional(),
+      sem_alimentador: z.enum(["true"]).optional(),
+    }).refine((q) => !(q.alimentador && q.sem_alimentador), "Escolha um alimentador válido.").safeParse(req.query);
+    if (!consulta.success) return reply.code(400).send({ erro: "Filtro de alimentador inválido." });
+    const { cidade, alimentador, sem_alimentador } = consulta.data;
     if (!cidade || !CIDADE_MAPA_RE.test(cidade)) return reply.code(400).send({ erro: 'Informe a cidade (código, como BH) ou "*" para todas.' });
 
     const escopo = escopoDoMapa(cidade, a);
@@ -22,7 +29,7 @@ export async function rotasMapa(app: FastifyInstance) {
       return reply.code(403).send({ erro: escopo.motivo === "todas_cidades" ? "Sem permissão para todas as cidades" : "Fora do escopo" });
     }
 
-    let q = db.from("ordens_servico").select("id, numero, cidade_id, lat, lng, codigo, nivel, status, tipo").not("status", "in", "(Concluída,Cancelada)");
+    let q = db.from("ordens_servico").select("id, numero, cidade_id, lat, lng, circuito, codigo, nivel, status, tipo").not("status", "in", "(Concluída,Cancelada)");
     if (cidade !== "*") q = q.eq("cidade_id", cidade);
     const { data, error } = await q;
     if (error) return reply.code(500).send({ erro: error.message });
@@ -33,6 +40,8 @@ export async function rotasMapa(app: FastifyInstance) {
       const minhas = new Set(a.equipeId ? await osDaEquipe(a.equipeId) : []);
       linhas = linhas.filter((o) => minhas.has(o.id));
     }
+    if (alimentador) linhas = linhas.filter((o) => o.circuito === alimentador);
+    if (sem_alimentador) linhas = linhas.filter((o) => o.circuito == null);
     const os: OSMapa[] = linhas.map((o) => ({
       id: o.id, num: o.numero, cidade: o.cidade_id, lat: o.lat, lng: o.lng, codigo: o.codigo, nivel: o.nivel, status: o.status, tipo: o.tipo,
     }));

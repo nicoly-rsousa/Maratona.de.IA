@@ -50,9 +50,9 @@ export function legendaDePrioridades(os: readonly { prioridade_codigo: number | 
 export const AVISO_ORDEM_INFORMATIVA = "Ordem informativa pela prioridade legada mapeada; não é a fila de prioridade do Farol.";
 export const LEGENDA_INFORMATIVA = "Prioridade legada (informativa, não é a fila do Farol)";
 
-// ───────── OS sem circuito identificado ─────────
+// ───────── OS sem alimentador identificado ─────────
 export const AVISO_SEM_CIRCUITO =
-  "Circuito não identificado: o código da OS não existe nas bases de rede. Não é corrigido automaticamente; a operação revisa.";
+  "Alimentador não identificado: o código da OS não existe nas bases de rede. Não é corrigido automaticamente; a operação revisa.";
 
 /** OS cujo circuito a importação não conseguiu identificar (ou veio vazio). A coordenada continua válida. */
 export function semCircuitoIdentificado<T extends { circuito: string | null; circuito_origem: CircuitoOrigem | null }>(os: readonly T[]): T[] {
@@ -114,7 +114,7 @@ export function legendaDeChaves(c: Chaves | FeicaoChave[] | undefined): ItemLege
 
 // ───────── Transformadores ─────────
 export const TEXTO_APOIO_TRANSFORMADORES =
-  "Clientes identificados: cerca de 24% dos clientes da base não têm circuito, então os totais podem estar subestimados.";
+  "Clientes identificados: cerca de 24% dos clientes da base não têm alimentador, então os totais podem estar subestimados.";
 
 export interface ResumoTransformadores { total: number; comPosicao: number; semPosicao: number; clientesIdentificados: number }
 export const temPosicao = (t: Pick<TransformadorRede, "lat" | "lng">): t is { lat: number; lng: number } =>
@@ -146,7 +146,7 @@ export function mensagemDaSugestao(status: number, msgApi?: string): Mensagem {
   switch (status) {
     case 201: return { tipo: "ok", texto: "Sugestão registrada. Nenhuma equipe foi designada e a fila não mudou." };
     case 409: return { tipo: "aviso", texto: "Essa sugestão já foi registrada para este par de OS (A→B e B→A contam como a mesma)." };
-    case 422: return { tipo: "erro", texto: `Não foi possível registrar: ${msgApi ?? "a OS sugerida não atende aos critérios (fora do raio ou do mesmo circuito)."}` };
+    case 422: return { tipo: "erro", texto: `Não foi possível registrar: ${msgApi ?? "a OS sugerida não atende aos critérios (fora do raio ou do mesmo alimentador)."}` };
     case 400: return { tipo: "erro", texto: `Pedido inválido: ${msgApi ?? "confira o raio e as OS escolhidas."}` };
     case 403: return { tipo: "erro", texto: "Seu perfil não pode registrar sugestões." };
     case 401: return { tipo: "erro", texto: "Sua sessão expirou. Entre novamente." };

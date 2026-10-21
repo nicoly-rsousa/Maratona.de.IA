@@ -272,3 +272,13 @@ describe("cenários CR-01 a CR-04 seguem iguais com regras reaplicadas pelo edit
     }
   });
 });
+
+describe("preverImpacto com OS de prazo desconhecido", () => {
+  const SEM_PRAZO: Regra = { id: "R-SEMPRAZO", nome: "Sem prazo sobe", ativa: true, nivel: 5, prioridadeMinima: 0, cond: [{ criterio: "prazo", opcoes: ["Sem prazo"] }] };
+  it("uma regra sobre 'Sem prazo' atinge a OS comum, mas NÃO a de prazo desconhecido (não afirma o que não sabe)", () => {
+    const comum = os("BH-C");
+    const desconhecida = os("BH-D", {}, { prazoDesconhecido: true });
+    expect(imp(com(regras(), SEM_PRAZO), [comum]).mudaram).toBe(1);
+    expect(imp(com(regras(), SEM_PRAZO), [desconhecida]).mudaram).toBe(0);
+  });
+});

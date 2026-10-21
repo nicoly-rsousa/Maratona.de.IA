@@ -9,6 +9,12 @@ export interface DadosTempo {
   aberturaMs: number;
   /** horas até o prazo-limite; negativo = vencido; null = sem prazo */
   prazoH: number | null;
+  /**
+   * O prazo é DESCONHECIDO (não "sem prazo"): OS importada do formato legado, cuja data é só informativa.
+   * Só vale enquanto `prazoH` é null; com prazo conhecido a marca é ignorada. O fato `prazo` é omitido,
+   * então o critério não afirma "Sem prazo" (cai na opção "desconhecida", se a versão tiver uma).
+   */
+  prazoDesconhecido?: boolean;
 }
 
 /** Fatos dependentes do tempo (recalculados pelo job a cada 60 s). */
@@ -16,6 +22,7 @@ export function fatosAutomaticos(t: DadosTempo, agoraMs: number): Fatos {
   const espMin = (agoraMs - t.aberturaMs) / MIN;
   const espera = espMin <= 60 ? "Até 1 h" : espMin <= 240 ? "1–4 h" : "> 4 h";
   const h = t.prazoH;
+  if (h == null && t.prazoDesconhecido) return { espera };
   const prazo = h == null ? "Sem prazo" : h < 24 ? "< 24 h ou vencido" : h <= 72 ? "24–72 h" : "> 72 h";
   return { espera, prazo };
 }

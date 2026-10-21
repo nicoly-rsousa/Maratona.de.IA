@@ -24,6 +24,7 @@ export async function reclassificarOS(
     {
       cidade: o.cidade_id, tipo: o.tipo, fatos: (o.fatos ?? {}) as Fatos, abertaEmMs: Date.parse(o.aberta_em),
       prazoLimiteMs: o.prazo_limite ? Date.parse(o.prazo_limite) : null, versaoId: o.versao_pontuacao_id ?? null,
+      prazoDesconhecido: o.numero_origem != null, // OS do formato legado: a data de origem é só informativa
       anterior: { codigo: o.codigo, pontos: o.pontos, nivel: o.nivel }, regrasVersao: o.regras_versao ?? null,
     },
     {

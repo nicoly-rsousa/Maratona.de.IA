@@ -101,3 +101,34 @@ describe("status (§10)", () => {
     expect(transicaoManualPermitida("Concluída", "Aguardando despacho")).toBe(true);
   });
 });
+
+describe("prazo desconhecido (OS importada do formato legado)", () => {
+  const agora = 1_700_000_000_000;
+  const abertura = agora - 30 * 60_000;
+
+  it("com a marca e sem prazo, o fato 'prazo' é OMITIDO e a espera continua calculada", () => {
+    const f = fatosAutomaticos({ aberturaMs: abertura, prazoH: null, prazoDesconhecido: true }, agora);
+    expect(f).toEqual({ espera: "Até 1 h" });
+    expect("prazo" in f).toBe(false);
+  });
+  it("sem a marca, prazo nulo continua sendo 'Sem prazo' (comportamento existente não muda)", () => {
+    expect(fatosAutomaticos({ aberturaMs: abertura, prazoH: null }, agora)).toEqual({ espera: "Até 1 h", prazo: "Sem prazo" });
+    expect(fatosAutomaticos({ aberturaMs: abertura, prazoH: null, prazoDesconhecido: false }, agora).prazo).toBe("Sem prazo");
+  });
+  it("prazo conhecido vence a marca (a marca só vale enquanto o prazo é desconhecido)", () => {
+    expect(fatosAutomaticos({ aberturaMs: abertura, prazoH: 10, prazoDesconhecido: true }, agora).prazo).toBe("< 24 h ou vencido");
+    expect(fatosAutomaticos({ aberturaMs: abertura, prazoH: -5, prazoDesconhecido: true }, agora).prazo).toBe("< 24 h ou vencido");
+  });
+  it("no resultado do motor, o critério prazo fica SEM opção escolhida (não afirma 'Sem prazo') e o desconhecido de risco continua pontuando", () => {
+    const comMarca = calcularPrioridade({ tipo: "Corretiva", ...fatosAutomaticos({ aberturaMs: abertura, prazoH: null, prazoDesconhecido: true }, agora) }, VERSAO_DEMO, REGRAS_DEMO);
+    const semMarca = calcularPrioridade({ tipo: "Corretiva", ...fatosAutomaticos({ aberturaMs: abertura, prazoH: null }, agora) }, VERSAO_DEMO, REGRAS_DEMO);
+    const prazo = (r: typeof comMarca) => r.itens.find((i) => i.criterio === "Prazo-limite (auto)")!;
+    expect(prazo(comMarca).opcoes).toEqual([]);
+    expect(prazo(semMarca).opcoes).toEqual(["Sem prazo"]);
+    // critérios de risco sem resposta caem em "Desconhecido" (15 + 10 + 10 + 8 + 10), nunca em zero
+    const vida = comMarca.itens.find((i) => i.criterio === "Risco à vida")!;
+    expect(vida.opcoes).toEqual(["Desconhecido"]);
+    expect(vida.pontos).toBe(15);
+    expect(comMarca.pontos).toBe(15 + 10 + 10 + 8 + 10 + 5 + 0 + 0); // + Corretiva 5 + prazo 0 + espera 0
+  });
+});

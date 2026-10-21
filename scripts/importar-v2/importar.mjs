@@ -45,6 +45,7 @@ if (GRAVAR) exigirDestinoLocal();
 
 const ARQ = {
   os: 'OS manutenção pendente.xlsx',
+  osCsv: 'OS manutenção pendente.csv',
   chaves: 'FIS_EMG_2026_07_E_CHAVES_ID.csv',
   clientes: 'Clientes Maratona.csv',
   regional: 'regional.csv',
@@ -241,10 +242,15 @@ const cellTxt = (v) => {
 };
 
 async function lerOS(circuitosRede, bbox, mapaPrioridade) {
-  const arq = path.join(DADOS, ARQ.os);
-  logf(`Lendo OS: ${ARQ.os}`);
+  const arqXlsx = path.join(DADOS, ARQ.os);
+  const arqCsv = path.join(DADOS, ARQ.osCsv);
+  // A planilha oficial é preferida. O CSV é alternativa leve com o mesmo cabeçalho, útil para cargas manuais.
+  const arq = fs.existsSync(arqXlsx) ? arqXlsx : arqCsv;
+  const formato = arq === arqXlsx ? 'xlsx' : 'csv';
+  logf(`Lendo OS: ${path.basename(arq)}`);
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile(arq);
+  if (formato === 'xlsx') await wb.xlsx.readFile(arq);
+  else await wb.csv.readFile(arq, { parserOptions: { delimiter: ';', quote: '"', escape: '"' } });
   const ws = wb.worksheets[0];
   // Por nome do cabeçalho (com trim), nunca por posição. Só estas colunas são lidas.
   const pos = {};

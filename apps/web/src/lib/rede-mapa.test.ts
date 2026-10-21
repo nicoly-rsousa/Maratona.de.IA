@@ -70,7 +70,7 @@ describe("textoDoPonto", () => {
   });
   it("sem mapa e sem circuito deixam o alerta explícito", () => {
     expect(textoDoPonto({ numero: "OS-2", prioridade_codigo: null, prioridade_legada: "NOVA", circuito: "X", circuito_origem: "nao_identificado" }))
-      .toBe("OS-2 · Sem mapa (legada: NOVA) · circuito não identificado");
+      .toBe("OS-2 · Sem mapa (legada: NOVA) · alimentador não identificado");
   });
   it("devolve TEXTO PURO: marcação HTML da planilha não é interpretada (o mapa usa textContent)", () => {
     const t = textoDoPonto({ ...base, numero: "<img src=x onerror=alert(1)>", prioridade_legada: "<b>x</b>" });

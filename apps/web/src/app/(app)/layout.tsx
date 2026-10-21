@@ -10,7 +10,7 @@ import type { Ator, Cidade } from "@/lib/types";
 import { Carregando, ErroApi } from "@/components/ui";
 import { IconeFarol } from "@/components/logo";
 import { useAuth } from "../providers";
-import { AppProvider } from "./app-context";
+import { AppProvider, SEM_ALIMENTADOR } from "./app-context";
 
 function alternarTema() {
   const r = document.documentElement;
@@ -18,6 +18,11 @@ function alternarTema() {
   if (claro) r.dataset.t = "l";
   else delete r.dataset.t;
   try { localStorage.setItem("farol-tema", claro ? "l" : "d"); } catch { /* storage indisponível */ }
+}
+
+interface RespostaAlimentadores {
+  circuitos: string[];
+  sem_alimentador: boolean;
 }
 
 /** Telas do protótipo. `perm` = qualquer permissão do /me que libera o item; sem `href` = ainda não implementada. */
@@ -37,6 +42,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const path = usePathname();
   const qc = useQueryClient();
   const [escolhida, setEscolhida] = useState<string | null>(null);
+  const [alimentadorEscolhido, setAlimentadorEscolhido] = useState("");
 
   useEffect(() => {
     if (!carregando && !session) router.replace("/login");
@@ -59,28 +65,56 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const cidade = valida(escolhida) ? escolhida! : (cidades?.[0]?.id ?? (ator?.todasCidades ? "*" : ""));
 
   const ready = ator && cidades;
+  const alimentadores = useQuery({
+    queryKey: ["alimentadores", session?.user.id, cidade],
+    queryFn: () => api<RespostaAlimentadores>(`/os/alimentadores?cidade=${encodeURIComponent(cidade)}`),
+    enabled: !!ready && cidade !== "",
+  });
 
   return (
     <>
-      <header className="flex flex-wrap items-center gap-2 border-b border-ln bg-p1 px-3 py-2">
-        <b className="mr-2 inline-flex items-center gap-1.5 text-[15px]"><IconeFarol />Farol</b>
+      <header className="app-header">
+        <b className="app-brand"><IconeFarol />Farol</b>
         {ator && <span className="mu">Usuário: <b className="font-semibold text-tx">{ator.nome}</b> · {ator.perfil}</span>}
         {ready && (
           <label className="mu flex items-center gap-1">
             Cidade
-            <select value={cidade} onChange={(e) => { setEscolhida(e.target.value); if (path !== "/fila" && path !== "/mapa" && path !== "/rede") router.push("/fila"); }}>
+            <select value={cidade} onChange={(e) => { setEscolhida(e.target.value); setAlimentadorEscolhido(""); if (path !== "/fila" && path !== "/mapa" && path !== "/rede") router.push("/fila"); }}>
               {cidades.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
               {ator.todasCidades && <option value="*">Todas as cidades</option>}
             </select>
           </label>
+        )}
+        {ready && cidade !== "" && (
+          <label className="mu flex items-center gap-1">
+            Alimentador
+            <select
+              value={alimentadorEscolhido}
+              disabled={alimentadores.isPending || alimentadores.isError}
+              onChange={(e) => {
+                setAlimentadorEscolhido(e.target.value);
+                if (path !== "/fila" && path !== "/mapa") router.push("/fila");
+              }}
+            >
+              <option value="">{alimentadores.isPending ? "Carregando…" : "Todos os alimentadores"}</option>
+              {(alimentadores.data?.circuitos ?? []).map((codigo) => <option key={codigo} value={codigo}>{codigo}</option>)}
+              {alimentadores.data?.sem_alimentador && <option value={SEM_ALIMENTADOR}>Sem alimentador identificado</option>}
+            </select>
+          </label>
+        )}
+        {alimentadores.isError && (
+          <span role="alert" className="mu">
+            Não foi possível carregar os alimentadores.{" "}
+            <button type="button" onClick={() => alimentadores.refetch()}>Tentar novamente</button>
+          </span>
         )}
         <button onClick={alternarTema} aria-label="Alternar tema claro e escuro">Tema</button>
         <button onClick={sair}>Sair</button>
         <span className="mu">Pontos, faixas e prazos demonstrativos</span>
       </header>
 
-      <div className="flex min-h-[calc(100vh-46px)] max-[700px]:flex-col">
-        <nav aria-label="Telas" className="flex w-[150px] flex-col gap-1 border-r border-ln p-2 max-[700px]:w-auto max-[700px]:flex-row max-[700px]:flex-wrap max-[700px]:border-b max-[700px]:border-r-0">
+      <div className="app-shell">
+        <nav aria-label="Telas" className="app-nav">
           {ITENS.filter((i) => !i.semPerfis?.includes(ator?.perfil ?? "") && (!i.perm || i.perm.some((p) => ator?.permissoes.includes(p)))).map((i) =>
             i.href ? (
               <Link
@@ -98,7 +132,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             ),
           )}
         </nav>
-        <main className="min-w-0 flex-1 p-3" aria-live="polite">
+        <main className="app-main" aria-live="polite">
           {me.isError ? (
             <ErroApi erro={me.error} titulo="Não foi possível identificar seu usuário." onRetry={() => me.refetch()} />
           ) : cids.isError ? (
@@ -106,7 +140,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           ) : !ready ? (
             <Carregando texto="Carregando…" />
           ) : (
-            <AppProvider value={{ ator, cidades, cidade, setCidade: setEscolhida }}>{children}</AppProvider>
+            <AppProvider value={{ ator, cidades, cidade, setCidade: setEscolhida, alimentador: alimentadorEscolhido, setAlimentador: setAlimentadorEscolhido }}>{children}</AppProvider>
           )}
         </main>
       </div>

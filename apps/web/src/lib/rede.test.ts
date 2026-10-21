@@ -40,7 +40,7 @@ describe("legendaDePrioridades", () => {
 });
 
 describe("semCircuitoIdentificado", () => {
-  it("separa as OS com circuito não identificado (inclusive vazio) sem descartar nenhuma", () => {
+  it("separa as OS com alimentador não identificado (inclusive vazio) sem descartar nenhuma", () => {
     const todas = [os("A"), os("B", { circuito: "CQT1-CQT", circuito_origem: "nao_identificado" }), os("C", { circuito: null, circuito_origem: "nao_identificado" }), os("D", { circuito: null, circuito_origem: null })];
     expect(semCircuitoIdentificado(todas).map((o) => o.numero)).toEqual(["B", "C", "D"]);
     expect(todas).toHaveLength(4);

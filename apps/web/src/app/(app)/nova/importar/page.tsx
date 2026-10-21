@@ -9,6 +9,7 @@ import {
 import { apiPost } from "@/lib/api";
 import type { ImportacaoConfirmada } from "@/lib/types";
 import { ErroAcao, Pill } from "@/components/ui";
+import { ImportacaoPendentes } from "@/components/importar/importacao-pendentes";
 import { useApp } from "../../app-context";
 
 const MOTIVO: Record<MotivoDuplicidade, string> = {
@@ -33,7 +34,8 @@ function baixarModelo() {
   URL.revokeObjectURL(url);
 }
 
-export default function ImportarCsvPage() {
+/** Modelo simples (um município para todas as linhas, endereço obrigatório): o fluxo que já existia. */
+function ImportacaoSimples() {
   const { ator, cidades, cidade: cidadeHeader } = useApp();
   const qc = useQueryClient();
   const podeNova = ator.permissoes.includes("nova");
@@ -97,9 +99,6 @@ export default function ImportarCsvPage() {
   return (
     <>
       <h2>Importar OS de um arquivo CSV</h2>
-      <p className="mu">
-        <Link href="/nova" className="text-ac underline">← Voltar para Nova solicitação (uma por vez)</Link>
-      </p>
       <div className="box">
         <p className="mu">
           Cada linha do arquivo passa pelas MESMAS regras do formulário: campos obrigatórios, formato de UC e transformador, e a
@@ -221,6 +220,41 @@ export default function ImportarCsvPage() {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+type Modelo = "pendentes" | "simples";
+
+/**
+ * Importar OS de um arquivo CSV. O PADRÃO é o formato da planilha "OS manutenção pendente" (cadastro em lote com campos opcionais).
+ * Esse modelo cria cidades (uma por município), então é do Administrador; os demais perfis ficam com o modelo simples.
+ */
+export default function ImportarCsvPage() {
+  const { ator } = useApp();
+  const pendentesLiberado = ator.todasCidades && ator.permissoes.includes("nova");
+  const [modelo, setModelo] = useState<Modelo>(pendentesLiberado ? "pendentes" : "simples");
+  const atual: Modelo = modelo === "pendentes" && !pendentesLiberado ? "simples" : modelo;
+  return (
+    <>
+      <p className="mu">
+        <Link href="/nova" className="text-ac underline">← Voltar para Nova solicitação (uma por vez)</Link>
+      </p>
+      <fieldset className="box" style={{ marginBottom: 10 }}>
+        <legend>Modelo do arquivo</legend>
+        <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <input type="radio" name="modelo-importacao" checked={atual === "pendentes"} disabled={!pendentesLiberado} onChange={() => setModelo("pendentes")} />
+          <span><b>OS manutenção pendente</b> (padrão): município vem da Localidade, só número da OS e município são obrigatórios</span>
+        </label>
+        {!pendentesLiberado && (
+          <p className="mu" style={{ margin: "2px 0 6px 22px" }}>Disponível só para o Administrador: esse modelo cria uma cidade por município.</p>
+        )}
+        <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <input type="radio" name="modelo-importacao" checked={atual === "simples"} onChange={() => setModelo("simples")} />
+          <span><b>Modelo simples</b>: um município para o arquivo todo e endereço obrigatório</span>
+        </label>
+      </fieldset>
+      {atual === "pendentes" ? <ImportacaoPendentes /> : <ImportacaoSimples />}
     </>
   );
 }

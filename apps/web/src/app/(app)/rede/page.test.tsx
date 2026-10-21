@@ -6,11 +6,11 @@ import { ApiError } from "@/lib/api";
 import type { RedeConfig } from "@/lib/rede-api";
 import { SEM_CIRCUITO_REAL, TOTAL_REAL, gerarOSReais, respostaOS } from "@/test/fixtures-rede";
 
-const h = vi.hoisted(() => ({ config: vi.fn(), os: vi.fn(), replace: vi.fn(), signOut: vi.fn(async () => ({})) }));
+const h = vi.hoisted(() => ({ config: vi.fn(), os: vi.fn(), circuitos: vi.fn(), replace: vi.fn(), signOut: vi.fn(async () => ({})) }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: h.replace }) }));
 vi.mock("@/lib/supabase", () => ({ supabase: () => ({ auth: { signOut: h.signOut } }) }));
-vi.mock("@/lib/rede-api", async (orig) => ({ ...(await orig<typeof import("@/lib/rede-api")>()), redeApi: { config: h.config, os: h.os } }));
+vi.mock("@/lib/rede-api", async (orig) => ({ ...(await orig<typeof import("@/lib/rede-api")>()), redeApi: { config: h.config, os: h.os, circuitos: h.circuitos } }));
 vi.mock("@/components/rede/mapa-rede", () => ({
   MapaRede: (p: { os: { circuito_origem: string | null }[]; selecionada: string | null; foco: { numero: string } | null; rotulo: string }) => (
     <div
@@ -32,8 +32,9 @@ function montar() {
 }
 
 beforeEach(() => {
-  h.config.mockReset(); h.os.mockReset(); h.replace.mockReset(); h.signOut.mockClear();
+  h.config.mockReset(); h.os.mockReset(); h.circuitos.mockReset(); h.replace.mockReset(); h.signOut.mockClear();
   h.config.mockResolvedValue(CFG);
+  h.circuitos.mockResolvedValue({ total: 0, circuitos: [] });
 });
 
 describe("porta de entrada (/rede/config)", () => {
@@ -120,7 +121,7 @@ describe("OS (/rede/os)", () => {
 describe("visão geral com as 4.513 OS", () => {
   beforeEach(() => h.os.mockResolvedValue(respostaOS(gerarOSReais())));
 
-  it("entrega as 4.513 OS ao mapa, com as 40 de circuito não identificado marcadas para anel vazado", async () => {
+  it("entrega as 4.513 OS ao mapa, com as 40 de alimentador não identificado marcadas para anel vazado", async () => {
     montar();
     const mapa = await screen.findByTestId("mapa");
     expect(mapa.getAttribute("data-total")).toBe(String(TOTAL_REAL));
@@ -141,12 +142,12 @@ describe("visão geral com as 4.513 OS", () => {
   it("legenda com a contagem e lista com as 40 OS e o aviso combinado", async () => {
     montar();
     await screen.findByTestId("mapa");
-    const tit = screen.getByRole("heading", { name: "OS sem circuito identificado (40)" });
+    const tit = screen.getByRole("heading", { name: "OS sem alimentador identificado (40)" });
     expect(tit).toBeTruthy();
     expect(screen.getAllByRole("note").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /Ver a OS .* no mapa/ })).toHaveLength(SEM_CIRCUITO_REAL);
     expect(document.body.textContent).toMatch(/Não é corrigido automaticamente/);
-    expect(nb(screen.getByText("Anel vazado: circuito não identificado").closest("li")!.textContent)).toContain("40 OS");
+    expect(nb(screen.getByText("Anel vazado: alimentador não identificado").closest("li")!.textContent)).toContain("40 OS");
   });
 
   it("'Ver no mapa' seleciona a OS, pede o foco e mostra o detalhe com o aviso", async () => {

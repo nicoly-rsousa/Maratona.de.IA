@@ -19,11 +19,11 @@ export function versoesDeCidades(publicadas: VersaoPublicada[], agoraMs: number)
 
 /** OS abertas no formato da previsão de impacto (todas as cidades: as regras valem para todas). */
 export async function abertasParaImpacto(): Promise<OSParaImpacto[]> {
-  const linhas = await lerAbertas("id, numero, cidade_id, tipo, fatos, aberta_em, prazo_limite, versao_pontuacao_id");
+  const linhas = await lerAbertas("id, numero, cidade_id, tipo, fatos, aberta_em, prazo_limite, versao_pontuacao_id, numero_origem");
   return linhas.map((o) => ({
     id: o.id, numero: o.numero, cidade: o.cidade_id, tipo: o.tipo, fatos: (o.fatos ?? {}) as Fatos,
     abertaEmMs: Date.parse(o.aberta_em), prazoLimiteMs: o.prazo_limite ? Date.parse(o.prazo_limite) : null,
-    versaoId: o.versao_pontuacao_id ?? null,
+    prazoDesconhecido: o.numero_origem != null, versaoId: o.versao_pontuacao_id ?? null,
   }));
 }
 

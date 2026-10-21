@@ -26,6 +26,9 @@ export interface EstiloPonto {
 
 export const TRACEJADO_SEM_MAPA = "3 3";
 
+/** Com um circuito selecionado: as OS dele em destaque, as demais esmaecidas (nunca escondidas). */
+export type ModoPonto = "normal" | "destaque" | "esmaecida";
+
 /**
  * Regras visuais (a legenda descreve as mesmas):
  *  - ponto cheio na cor da classe (prioridade legada mapeada, informativa);
@@ -37,6 +40,7 @@ export function estiloDoPonto(
   o: Pick<OSRedeLeve, "prioridade_codigo" | "circuito" | "circuito_origem">,
   cores: CoresTema,
   selecionada = false,
+  modo: ModoPonto = "normal",
 ): EstiloPonto {
   const e = estiloDaPrioridade(o.prioridade_codigo);
   const cor = e.semMapa ? COR_SEM_MAPA : (cores[e.variavelCss!] || CORES_RESERVA[e.variavelCss!] || COR_SEM_MAPA);
@@ -52,13 +56,49 @@ export function estiloDoPonto(
   } else {
     s = { radius: 5, color: borda, weight: 1.5, opacity: 1, fill: true, fillColor: cor, fillOpacity: 0.92, dashArray: null };
   }
-  return selecionada ? { ...s, radius: s.radius + 4, color: contorno, weight: s.weight + 1.5, dashArray: null } : s;
+  if (selecionada) return { ...s, radius: s.radius + 4, color: contorno, weight: s.weight + 1.5, dashArray: null };
+  if (modo === "destaque") return { ...s, radius: s.radius + 2, color: s.fill ? contorno : s.color, weight: s.weight + 1 };
+  if (modo === "esmaecida") return { ...s, opacity: 0.35, fillOpacity: s.fill ? 0.22 : 0 };
+  return s;
 }
 
 export type Limites = [[number, number], [number, number]];
 
 const finito = (n: number | null): n is number => typeof n === "number" && Number.isFinite(n);
 export const temCoordenada = (o: Pick<OSRedeLeve, "lat" | "lng">): o is { lat: number; lng: number } & typeof o => finito(o.lat) && finito(o.lng);
+
+/** Raio operacional mostrado ao selecionar uma OS no mapa da rede. */
+export const RAIO_OS_PROXIMAS_M = 1_000;
+
+export interface OSProxima {
+  os: OSRedeLeve;
+  distanciaM: number;
+}
+
+const radianos = (graus: number) => graus * Math.PI / 180;
+
+/** Distância ortodrômica em metros. Retorna null se uma das OS não tiver posição válida. */
+export function distanciaEntreOS(a: OSRedeLeve, b: OSRedeLeve): number | null {
+  if (!temCoordenada(a) || !temCoordenada(b)) return null;
+  const raioTerraM = 6_371_000;
+  const dLat = radianos(b.lat - a.lat);
+  const dLng = radianos(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2
+    + Math.cos(radianos(a.lat)) * Math.cos(radianos(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * raioTerraM * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+/** Outras OS dentro do raio, ordenadas pela distância mais curta. A OS de origem nunca entra na lista. */
+export function osProximas(a: OSRedeLeve, os: readonly OSRedeLeve[], raioM = RAIO_OS_PROXIMAS_M): OSProxima[] {
+  if (!temCoordenada(a)) return [];
+  const proximas: OSProxima[] = [];
+  for (const outra of os) {
+    if (outra.numero === a.numero) continue;
+    const distanciaM = distanciaEntreOS(a, outra);
+    if (distanciaM !== null && distanciaM <= raioM) proximas.push({ os: outra, distanciaM });
+  }
+  return proximas.sort((x, y) => x.distanciaM - y.distanciaM || x.os.numero.localeCompare(y.os.numero));
+}
 
 /** Retângulo [[sul, oeste], [norte, leste]] que contém todas as OS com coordenada; null se nenhuma tiver. */
 export function limitesDasOS(os: readonly Pick<OSRedeLeve, "lat" | "lng">[]): Limites | null {
@@ -75,6 +115,6 @@ export function limitesDasOS(os: readonly Pick<OSRedeLeve, "lat" | "lng">[]): Li
 export function textoDoPonto(o: Pick<OSRedeLeve, "numero" | "prioridade_codigo" | "prioridade_legada" | "circuito" | "circuito_origem">): string {
   const e = estiloDaPrioridade(o.prioridade_codigo);
   const legada = o.prioridade_legada ? ` (legada: ${o.prioridade_legada})` : "";
-  const alerta = semCircuitoIdentificado([o as OSRedeLeve]).length > 0 ? " · circuito não identificado" : "";
+  const alerta = semCircuitoIdentificado([o as OSRedeLeve]).length > 0 ? " · alimentador não identificado" : "";
   return `${o.numero} · ${e.rotulo}${legada}${alerta}`;
 }

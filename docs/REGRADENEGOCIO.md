@@ -156,3 +156,16 @@ Traçado real do alimentador: existe geometria utilizável?
 Origem oficial da regional.
 Permissões de Atendente e Equipe de campo na carona.
 Mapa da prioridade legada da OS para os códigos do Farol (demonstrativo).
+15.9 Cadastro de OS no formato "OS manutenção pendente" (importação por arquivo CSV)
+Formato: a planilha "OS manutenção pendente" exportada como CSV (UTF-8 ou Windows-1252; separador ponto e vírgula, vírgula ou tab). As colunas são lidas pelo NOME, sem acento e sem caixa; se um cabeçalho se repetir, vale a primeira ocorrência. Só 15 colunas são usadas (OSNumero, CodSetor, CodPrioridade, DataDeadline, Quantidade clientes, Localidade, Logradouro, Bairro, Complemento de Localização, COORDENADA UTM X e Y, latitude e longitude SIRGAS 2000, DescEsquema, Familias); as demais nunca saem do navegador.
+Quem importa: somente o Administrador (a importação cria cidades). A API aplica a regra; negado = 403 com auditoria.
+Obrigatórios: apenas o número da OS (OSNumero, guardado em numero_origem) e o município (extraído da Localidade, sem o código final "NN-NN"). Linha sem um dos dois, ou com número repetido no arquivo, é rejeitada e vai para um arquivo de rejeitadas (só número da linha, motivo e colunas permitidas; sem endereço, bairro nem complemento).
+Vazio: célula vazia ou só com espaços vira NULL (desconhecido), nunca zero nem texto de preenchimento. Uma lista de textos nulos ("N/A", "-") é configurável (importacao.textos_nulos) e vem desligada.
+Valor presente e inválido em campo opcional (texto em clientes, data impossível, coordenada fora da região, UTM com só X ou só Y): a linha entra com AVISO e o campo fica nulo. Nada é corrigido em silêncio.
+Coordenadas: latitude/longitude se existirem e forem válidas; senão a UTM (SIRGAS 2000 zona 23S), que exige X e Y juntos. Sem coordenada a OS entra "Em triagem", fora do mapa e da busca por raio, mas visível em lista.
+Endereço: a coluna continua NOT NULL. Vazio vira "Poste <código> — <município>" (código vindo do Complemento de Localização, só se casar com o padrão configurável importacao.padrao_poste; texto livre NUNCA é copiado) ou "Endereço não informado — <município>". A origem fica em origem_endereco (informado, derivado_poste, nao_informado).
+Cidades: cada município vira uma cidade do Farol (código de 2 a 5 letras gerado sem colisão; cidades.municipio_origem guarda a origem, então reimportar não duplica).
+Número: a OS mantém o número gerado pelo Farol e guarda o OSNumero em numero_origem (único). Reimportar o mesmo número não cria outra OS nem altera a existente.
+Prioridade: calculada pelas regras do Farol (camadas A e B), na fila do Farol. A planilha não traz as respostas dos critérios, então cada critério de risco sem resposta vale a opção "Desconhecido" da versão (que pontua; nunca zero). A prioridade legada (CodPrioridade), a quantidade de clientes e o prazo (DataDeadline, em prazo_origem) são só informativos: o prazo NÃO vira prazo-limite do Farol, e o fato "prazo" é omitido (não afirma "Sem prazo"), inclusive na reclassificação automática.
+Duplicidade (seção 11): não roda neste formato; a identidade da OS é o numero_origem.
+Gravação: em lotes de até importacao.tamanho_lote (200), cada lote atômico e idempotente. Falha em um lote não grava nada dele e o lote pode ser reenviado.

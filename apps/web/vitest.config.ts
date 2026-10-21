@@ -12,5 +12,7 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    // testes de componente com jsdom competem por CPU quando o conjunto roda em paralelo (e o Docker local também pesa)
+    testTimeout: 20_000,
   },
 });

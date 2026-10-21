@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { COR_SEM_MAPA, LEGENDA_INFORMATIVA, legendaDePrioridades, semCircuitoIdentificado, type ChavePrioridade } from "@/lib/rede";
 import type { OSRedeLeve } from "@/lib/rede-api";
 
-/** Amostra da legenda: mesmas regras visuais do mapa (cheio = classe; tracejado = sem mapa; anel vazado = circuito não identificado). */
+/** Amostra da legenda: mesmas regras visuais do mapa (cheio = classe; tracejado = sem mapa; anel vazado = alimentador não identificado). */
 function amostra(chave: ChavePrioridade | "anel"): CSSProperties {
   const base: CSSProperties = { display: "inline-block", width: 14, height: 14, borderRadius: "50%", verticalAlign: "-2px", marginRight: 6, flex: "none" };
   if (chave === "anel") return { ...base, background: "transparent", border: "3px solid var(--tx)" };
@@ -29,7 +29,7 @@ export function Legenda({ os }: { os: readonly OSRedeLeve[] }) {
         ))}
         <li style={{ display: "flex", alignItems: "center", padding: "6px 0 2px", borderTop: "1px solid var(--ln)", marginTop: 4 }}>
           <span aria-hidden="true" style={amostra("anel")} />
-          <span>Anel vazado: circuito não identificado</span>
+          <span>Anel vazado: alimentador não identificado</span>
           <span className="mu" style={{ marginLeft: "auto", paddingLeft: 8 }}>{n(semCirc)} OS</span>
         </li>
       </ul>

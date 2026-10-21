@@ -6,7 +6,7 @@ Protótipo de referência (UI/fluxos): `docs/farol.html`.
 ## Stack
 - `packages/shared`: tipos Zod + motor de priorização PURO (sem I/O). Usado pela API e pelo front.
 - `apps/api` (Render): Fastify + Supabase (service_role). **Todo filtro de cidade/perfil é no servidor.**
-- `apps/web` (Vercel): Next.js + Tailwind + shadcn/ui + TanStack Query + react-leaflet. Fala só com a API e com Supabase Auth.
+- `apps/web` (Vercel): Next.js + Tailwind (tokens em `globals.css`, sem shadcn/ui) + TanStack Query + react-leaflet. Fala só com a API e com Supabase Auth.
 - `supabase/`: migrations SQL (RLS como defesa em profundidade).
 
 ## Regras de ouro

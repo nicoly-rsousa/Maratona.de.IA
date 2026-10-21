@@ -9,6 +9,7 @@ import { rotasPontuacao } from "./routes/pontuacao.js";
 import { rotasMapa } from "./routes/mapa.js";
 import { rotasRegras } from "./routes/regras.js";
 import { rotasRede } from "./routes/rede.js";
+import { rotasImportarOSPendentes } from "./routes/importar-os-pendentes.js";
 
 /** Monta a API sem abrir porta nem agendar jobs (server.ts faz isso). Os testes usam `app.inject`. */
 export async function criarApp(opts: { logger?: boolean } = {}) {
@@ -30,6 +31,7 @@ export async function criarApp(opts: { logger?: boolean } = {}) {
     await r.register(rotasMapa);
     await r.register(rotasRegras);
     await r.register(rotasRede);
+    await r.register(rotasImportarOSPendentes);
   });
   return app;
 }

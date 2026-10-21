@@ -35,7 +35,7 @@ describe("Legenda", () => {
   });
   it("a linha do anel vazado traz as 40 OS sem circuito", () => {
     render(<Legenda os={os} />);
-    expect(nb(linhaDaLegenda("Anel vazado: circuito não identificado").textContent)).toContain(`${SEM_CIRCUITO_REAL} OS`);
+    expect(nb(linhaDaLegenda("Anel vazado: alimentador não identificado").textContent)).toContain(`${SEM_CIRCUITO_REAL} OS`);
   });
   it("explica o contorno tracejado de 'sem mapa'", () => {
     render(<Legenda os={os} />);
@@ -46,10 +46,10 @@ describe("Legenda", () => {
 describe("ListaSemCircuito: as 40 OS", () => {
   const todas = gerarOSReais();
   const sem = todas.filter((o) => o.circuito_origem === "nao_identificado");
-  it("a fixture tem exatamente 40 OS sem circuito identificado", () => expect(sem).toHaveLength(SEM_CIRCUITO_REAL));
+  it("a fixture tem exatamente 40 OS sem alimentador identificado", () => expect(sem).toHaveLength(SEM_CIRCUITO_REAL));
   it("lista as 40 com o aviso combinado e o título com a contagem", () => {
     render(<ListaSemCircuito os={sem} selecionada={null} onVerNoMapa={() => {}} />);
-    expect(screen.getByRole("heading", { name: "OS sem circuito identificado (40)" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "OS sem alimentador identificado (40)" })).toBeTruthy();
     expect(screen.getByRole("note").textContent).toMatch(/Não é corrigido automaticamente/);
     const corpo = screen.getAllByRole("row").slice(1);
     expect(corpo).toHaveLength(40);
@@ -69,7 +69,7 @@ describe("ListaSemCircuito: as 40 OS", () => {
   });
   it("lista vazia: mensagem em vez de tabela", () => {
     render(<ListaSemCircuito os={[]} selecionada={null} onVerNoMapa={() => {}} />);
-    expect(screen.getByText(/Nenhuma OS com circuito não identificado/)).toBeTruthy();
+    expect(screen.getByText(/Nenhuma OS com alimentador não identificado/)).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
 });
@@ -85,9 +85,9 @@ describe("DetalheOS", () => {
     expect(screen.getByText("Classe (informativa)")).toBeTruthy();
     expect(screen.queryByRole("note")).toBeNull();
   });
-  it("OS sem circuito identificado mostra o aviso", () => {
+  it("OS sem alimentador identificado mostra o aviso", () => {
     render(<DetalheOS os={os[0]!} />);
-    expect(within(screen.getByRole("note")).getByText(/Circuito não identificado/)).toBeTruthy();
+    expect(within(screen.getByRole("note")).getByText(/Alimentador não identificado/)).toBeTruthy();
   });
   it("sem mapa deixa explícito que a prioridade legada não está no mapa", () => {
     render(<DetalheOS os={{ ...os[1]!, prioridade_codigo: null }} />);

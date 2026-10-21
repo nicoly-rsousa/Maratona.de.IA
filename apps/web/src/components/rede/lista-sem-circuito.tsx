@@ -8,19 +8,19 @@ export function ListaSemCircuito({
   return (
     <section id="lista-sem-circuito" className="box" aria-labelledby="sem-circuito-titulo">
       <h3 id="sem-circuito-titulo" style={{ marginTop: 0 }}>
-        OS sem circuito identificado ({os.length.toLocaleString("pt-BR")})
+        OS sem alimentador identificado ({os.length.toLocaleString("pt-BR")})
       </h3>
       <div className="warn" role="note">{AVISO_SEM_CIRCUITO}</div>
       {os.length === 0 ? (
-        <p className="mu">Nenhuma OS com circuito não identificado nesta carga.</p>
+        <p className="mu">Nenhuma OS com alimentador não identificado nesta carga.</p>
       ) : (
         <div className="tw" style={{ maxHeight: 320, overflow: "auto" }}>
           <table className="tabela">
-            <caption className="sr-only">OS com circuito não identificado</caption>
+            <caption className="sr-only">OS com alimentador não identificado</caption>
             <thead>
               <tr>
                 <th scope="col">OS</th>
-                <th scope="col">Circuito informado</th>
+                <th scope="col">Alimentador informado</th>
                 <th scope="col">Município</th>
                 <th scope="col">Prioridade legada</th>
                 <th scope="col"><span className="sr-only">Ação</span></th>

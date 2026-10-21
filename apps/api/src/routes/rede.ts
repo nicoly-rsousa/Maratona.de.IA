@@ -63,7 +63,7 @@ export async function rotasRede(app: FastifyInstance) {
       .order("codigo").range(de, ate));
     const os = await lerTudo<{ numero: string; circuito: string | null }>((de, ate) =>
       db.from("os_importadas").select("numero, circuito").order("numero").range(de, ate));
-    if (cs.falha || os.falha) return reply.code(500).send({ erro: "Falha ao consultar os circuitos" });
+    if (cs.falha || os.falha) return reply.code(500).send({ erro: "Falha ao consultar os alimentadores" });
     const qtd = new Map<string, number>();
     for (const o of os.linhas) if (o.circuito !== null) qtd.set(o.circuito, (qtd.get(o.circuito) ?? 0) + 1);
     const circuitos = cs.linhas.map((c) => {
@@ -93,7 +93,7 @@ export async function rotasRede(app: FastifyInstance) {
     if (!(await exigirRede(req, reply))) return;
     const q = req.query as { regional?: string; circuito?: string };
     const circuito = q.circuito === undefined || q.circuito === "" ? null : Codigo.safeParse(q.circuito);
-    if (circuito && !circuito.success) return erro400(reply, "Código de circuito inválido.");
+    if (circuito && !circuito.success) return erro400(reply, "Código de alimentador inválido.");
     const regional = q.regional === undefined || q.regional.trim() === "" ? null : q.regional.trim();
     if (regional !== null && regional.length > 64) return erro400(reply, "Regional inválida.");
 
@@ -132,12 +132,12 @@ export async function rotasRede(app: FastifyInstance) {
   app.get("/rede/circuitos/:codigo", async (req, reply) => {
     if (!(await exigirRede(req, reply))) return;
     const p = Codigo.safeParse((req.params as { codigo?: string }).codigo);
-    if (!p.success) return erro400(reply, "Código de circuito inválido.");
+    if (!p.success) return erro400(reply, "Código de alimentador inválido.");
     const { data: c, error } = await db.from("circuitos")
       .select("codigo, clientes, ligados, desligados, classes, chaves_qtd, tem_tracado, bbox_min_lat, bbox_min_lng, bbox_max_lat, bbox_max_lng")
       .eq("codigo", p.data).maybeSingle();
-    if (error) return reply.code(500).send({ erro: "Falha ao consultar o circuito" });
-    if (!c) return reply.code(404).send({ erro: "Circuito não encontrado" });
+    if (error) return reply.code(500).send({ erro: "Falha ao consultar o alimentador" });
+    if (!c) return reply.code(404).send({ erro: "Alimentador não encontrado" });
     const lidas = await lerTudo<OSRede>((de, ate) => db.from("os_importadas").select(COLUNAS_OS).eq("circuito", p.data).order("numero").range(de, ate));
     if (lidas.falha) return reply.code(500).send({ erro: "Falha ao consultar as OS" });
     const mapa = await mapaPrioridade();
@@ -151,10 +151,10 @@ export async function rotasRede(app: FastifyInstance) {
   const geo = (sufixo: "tracado" | "chaves" | "transformadores") => async (req: FastifyRequest, reply: FastifyReply) => {
     if (!(await exigirRede(req, reply))) return;
     const p = Codigo.safeParse((req.params as { codigo?: string }).codigo);
-    if (!p.success) return erro400(reply, "Código de circuito inválido.");
+    if (!p.success) return erro400(reply, "Código de alimentador inválido.");
     const existe = await circuitoExiste(p.data);
-    if (existe === null) return reply.code(500).send({ erro: "Falha ao consultar o circuito" });
-    if (!existe) return reply.code(404).send({ erro: "Circuito não encontrado" });
+    if (existe === null) return reply.code(500).send({ erro: "Falha ao consultar o alimentador" });
+    if (!existe) return reply.code(404).send({ erro: "Alimentador não encontrado" });
     const r = sufixo === "tracado"
       ? await db.rpc("rede_tracado_geojson", { p_circuito: p.data, p_incluir_bt: (req.query as { bt?: string }).bt === "1" })
       : sufixo === "chaves"
@@ -217,7 +217,7 @@ export async function rotasRede(app: FastifyInstance) {
     if (o.os.lat === null || o.os.lng === null || s.os.lat === null || s.os.lng === null)
       return reply.code(422).send({ erro: "OS sem coordenada: não é possível validar a proximidade." });
     if (o.os.circuito !== null && o.os.circuito === s.os.circuito)
-      return reply.code(422).send({ erro: "A OS sugerida precisa ser de outro circuito." });
+      return reply.code(422).send({ erro: "A OS sugerida precisa ser de outro alimentador." });
 
     // Recalcula no banco (PostGIS) se a sugerida está dentro do raio informado; o cliente não é confiável.
     const { data, error } = await osNoRaio(o.os, r.raioM, null);

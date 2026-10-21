@@ -6,15 +6,18 @@ import { api } from "@/lib/api";
 import { minutosDesde, prazoTexto } from "@/lib/format";
 import type { OSFila } from "@/lib/types";
 import { Carregando, ErroApi, Pill } from "@/components/ui";
-import { useApp } from "../app-context";
+import { SEM_ALIMENTADOR, useApp } from "../app-context";
 
 export default function FilaPage() {
-  const { ator, cidades, cidade } = useApp();
+  const { ator, cidades, cidade, alimentador } = useApp();
   const nome = cidade === "*" ? "todas as cidades" : (cidades.find((c) => c.id === cidade)?.nome ?? cidade);
+  const filtroAlimentador = alimentador === SEM_ALIMENTADOR
+    ? "&sem_alimentador=true"
+    : alimentador ? `&alimentador=${encodeURIComponent(alimentador)}` : "";
 
   const fila = useQuery({
-    queryKey: ["fila", cidade],
-    queryFn: () => api<OSFila[]>(`/os/fila?cidade=${encodeURIComponent(cidade)}`),
+    queryKey: ["fila", cidade, alimentador],
+    queryFn: () => api<OSFila[]>(`/os/fila?cidade=${encodeURIComponent(cidade)}${filtroAlimentador}`),
     enabled: cidade !== "",
     refetchInterval: 60_000, // a API reclassifica a cada 60 s (§7)
   });
@@ -27,7 +30,7 @@ export default function FilaPage() {
 
   return (
     <>
-      <h2>Fila — {nome}</h2>
+      <h2>Fila — {nome}{alimentador ? ` · ${alimentador === SEM_ALIMENTADOR ? "sem alimentador identificado" : alimentador}` : ""}</h2>
       {fila.isPending ? (
         <Carregando texto="Carregando a fila…" />
       ) : fila.isError ? (
@@ -67,7 +70,7 @@ export default function FilaPage() {
               </table>
             </div>
           ) : (
-            <div className="box">Nenhuma OS aberta nesta visão. Registre uma solicitação em <b>Nova solicitação</b> ou troque de cidade.</div>
+            <div className="box">Nenhuma OS aberta nesta visão. Registre uma solicitação em <b>Nova solicitação</b> ou troque o filtro de cidade/alimentador.</div>
           )}
         </>
       )}
