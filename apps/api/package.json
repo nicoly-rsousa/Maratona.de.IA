@@ -12,6 +12,8 @@
     "seed": "tsx --env-file=.env src/seed.ts",
     "seed:os": "tsx --env-file=.env src/seed-os.ts",
     "seed:cr": "tsx --env-file=.env src/seed-cr.ts",
+    "test": "vitest run",
+    "test:integracao": "node --env-file=../../.env.docker ../../node_modules/vitest/vitest.mjs run --config vitest.integracao.config.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
@@ -19,12 +21,14 @@
     "@fastify/cors": "^10.0.1",
     "@supabase/supabase-js": "^2.45.6",
     "fastify": "^5.1.0",
+    "proj4": "^2.22.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
   }
 }

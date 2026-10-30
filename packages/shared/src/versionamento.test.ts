@@ -246,3 +246,24 @@ describe("versão do conjunto de regras (camada A)", () => {
     expect(p.desatualizada).toBe(true);
   });
 });
+
+describe("prazo desconhecido na reclassificação (a rotina de 60 s não pode virar 'Sem prazo')", () => {
+  const item = (r: { resultado: { itens: { criterio: string; opcoes: string[] }[] } }) => r.resultado.itens.find((i) => i.criterio === "Prazo-limite (auto)")!;
+
+  it("OS marcada como de prazo desconhecido e sem prazo-limite: o critério prazo fica sem opção", () => {
+    const p = plano(os({ prazoDesconhecido: true }), [g1], T0 + H, false)!;
+    expect(item(p).opcoes).toEqual([]);
+  });
+  it("sem a marca, o comportamento é o de sempre: 'Sem prazo'", () => {
+    expect(item(plano(os(), [g1], T0 + H, false)!).opcoes).toEqual(["Sem prazo"]);
+    expect(item(plano(os({ prazoDesconhecido: false }), [g1], T0 + H, false)!).opcoes).toEqual(["Sem prazo"]);
+  });
+  it("com prazo-limite conhecido a marca não vale", () => {
+    const p = plano(os({ prazoDesconhecido: true, prazoLimiteMs: T0 + 10 * H }), [g1], T0, false)!;
+    expect(item(p).opcoes).toEqual(["< 24 h ou vencido"]);
+  });
+  it("a marca não muda a espera (continua derivada do relógio)", () => {
+    const p = plano(os({ prazoDesconhecido: true }), [g1], T0 + 5 * H, false)!;
+    expect(p.resultado.itens.find((i) => i.criterio === "Tempo de espera (auto)")!.opcoes).toEqual(["> 4 h"]);
+  });
+});

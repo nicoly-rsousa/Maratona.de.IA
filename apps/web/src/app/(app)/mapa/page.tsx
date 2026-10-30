@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { Carregando, ErroApi, Pill } from "@/components/ui";
 import { Mapa } from "@/components/mapa";
 import { useApp } from "../app-context";
+import { SEM_ALIMENTADOR } from "../app-context";
 
 function Detalhe({ sel, d, mostrarEquipes }: { sel: OSMapa; d: RespostaMapa; mostrarEquipes: boolean }) {
   const dist = distanciasAteEquipes(sel, d.equipes);
@@ -56,8 +57,11 @@ function Detalhe({ sel, d, mostrarEquipes }: { sel: OSMapa; d: RespostaMapa; mos
 }
 
 export default function MapaPage() {
-  const { ator, cidades, cidade } = useApp();
+  const { ator, cidades, cidade, alimentador } = useApp();
   const nome = cidade === "*" ? "todas as cidades" : (cidades.find((c) => c.id === cidade)?.nome ?? cidade);
+  const filtroAlimentador = alimentador === SEM_ALIMENTADOR
+    ? "&sem_alimentador=true"
+    : alimentador ? `&alimentador=${encodeURIComponent(alimentador)}` : "";
   const [selId, setSelId] = useState<string | null>(null);
   const [mostrarEquipes, setMostrarEquipes] = useState(true);
 
@@ -68,8 +72,8 @@ export default function MapaPage() {
   }
 
   const q = useQuery({
-    queryKey: ["mapa", cidade],
-    queryFn: () => api<RespostaMapa>(`/mapa?cidade=${encodeURIComponent(cidade)}`),
+    queryKey: ["mapa", cidade, alimentador],
+    queryFn: () => api<RespostaMapa>(`/mapa?cidade=${encodeURIComponent(cidade)}${filtroAlimentador}`),
     enabled: cidade !== "",
     refetchInterval: 60_000, // a API reclassifica a cada 60 s (§7)
   });
@@ -85,7 +89,7 @@ export default function MapaPage() {
 
   return (
     <>
-      <h2>Mapa — {nome}</h2>
+      <h2>Mapa — {nome}{alimentador ? ` · ${alimentador === SEM_ALIMENTADOR ? "sem alimentador identificado" : alimentador}` : ""}</h2>
       {q.isPending ? (
         <Carregando texto="Carregando o mapa…" />
       ) : q.isError ? (

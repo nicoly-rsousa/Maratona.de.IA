@@ -18,17 +18,53 @@ const mensagens = (e: z.ZodError) => e.issues.map((i) => (i.path.length ? `${i.p
 // Query string: "" vira ausente; números chegam como texto.
 const txt = z.string().trim().transform((s) => (s === "" ? undefined : s)).optional();
 const num = z.string().trim().transform((s) => (s === "" ? undefined : Number(s))).pipe(z.number().finite().optional()).optional();
+const FiltroFila = z.object({
+  cidade: z.string().trim().min(2).optional(),
+  alimentador: z.string().trim().min(1).max(64).optional(),
+  sem_alimentador: z.enum(["true"]).optional(),
+}).refine((q) => !(q.alimentador && q.sem_alimentador), "Escolha um alimentador válido.");
 const ConsultaDup = z.object({
   cidade: z.string().min(2), endereco: txt, lat: num, lng: num, transformador: txt, uc: txt, conjunto: txt,
   tipo: z.enum(TIPOS_MANUTENCAO).optional(),
 });
 
 export async function rotasOS(app: FastifyInstance) {
+  // Alimentadores disponíveis no escopo consultável, sem revelar OS de outras cidades ou equipes.
+  app.get("/os/alimentadores", async (req, reply) => {
+    if (!(await exigir(req, reply, "consultar"))) return;
+    const { cidade } = (req.query ?? {}) as { cidade?: string };
+    if (!cidade || (cidade !== "*" && cidade.length < 2)) return reply.code(400).send({ erro: "Informe a cidade." });
+
+    const a = req.ator!;
+    if (cidade === "*") {
+      if (!a.todasCidades) return reply.code(403).send({ erro: "Sem permissão para todas as cidades" });
+    } else if (!veCidade(a, cidade)) {
+      await auditar(a, "negado:alimentadores", { cidade, resultado: "negado" });
+      return reply.code(403).send({ erro: "Fora do escopo" });
+    }
+
+    let q = db.from("ordens_servico").select("id, circuito").not("status", "in", "(Concluída,Cancelada)");
+    if (cidade !== "*") q = q.eq("cidade_id", cidade);
+    const { data, error } = await q;
+    if (error) return reply.code(500).send({ erro: error.message });
+
+    let linhas = data ?? [];
+    if (a.perfil === "Equipe de campo") {
+      const minhas = new Set(a.equipeId ? await osDaEquipe(a.equipeId) : []);
+      linhas = linhas.filter((o) => minhas.has(o.id as string));
+    }
+    const circuitos = [...new Set(linhas.map((o) => o.circuito).filter((c): c is string => typeof c === "string" && c.length > 0))]
+      .sort((x, y) => x.localeCompare(y));
+    return { circuitos, sem_alimentador: linhas.some((o) => o.circuito == null) };
+  });
+
   // Fila ordenada (§2). Filtro por cidade SEMPRE no servidor.
   app.get("/os/fila", async (req, reply) => {
     if (!(await exigir(req, reply, "consultar"))) return;
     const a = req.ator!;
-    const { cidade = "*" } = req.query as { cidade?: string };
+    const consulta = FiltroFila.safeParse(req.query);
+    if (!consulta.success) return reply.code(400).send({ erro: mensagens(consulta.error) });
+    const { cidade = "*", alimentador, sem_alimentador } = consulta.data;
 
     let q = db.from("ordens_servico").select("*").not("status", "in", "(Concluída,Cancelada)");
     if (cidade === "*") {
@@ -51,6 +87,8 @@ export async function rotasOS(app: FastifyInstance) {
       const minhas = new Set(a.equipeId ? await osDaEquipe(a.equipeId) : []);
       visiveis = visiveis.filter((o) => minhas.has(o.id));
     }
+    if (alimentador) visiveis = visiveis.filter((o) => o.circuito === alimentador);
+    if (sem_alimentador) visiveis = visiveis.filter((o) => o.circuito == null);
     return visiveis
       .map((o) => ({ ...o, posicao: posicoes.get(o.numero)!.posicao }))
       .sort((x, y) => x.cidade_id.localeCompare(y.cidade_id) || x.posicao - y.posicao);

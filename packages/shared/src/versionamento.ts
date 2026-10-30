@@ -71,6 +71,8 @@ export interface OSParaCalculo {
   fatos: Fatos;
   abertaEmMs: number;
   prazoLimiteMs: number | null;
+  /** OS importada do formato legado: sem prazo-limite do Farol, o prazo é DESCONHECIDO (não "Sem prazo") */
+  prazoDesconhecido?: boolean;
   versaoId: string | null;
   /** cache atual da OS, para saber se algo mudou */
   anterior: { codigo: number; pontos: number; nivel: number };
@@ -111,7 +113,7 @@ export function planejarReclassificacao(
   if (!escolha) return undefined;
 
   const prazoH = os.prazoLimiteMs == null ? null : (os.prazoLimiteMs - ctx.agoraMs) / 3_600_000;
-  const fatos: Fatos = { ...os.fatos, tipo: os.tipo, ...fatosAutomaticos({ aberturaMs: os.abertaEmMs, prazoH }, ctx.agoraMs) };
+  const fatos: Fatos = { ...os.fatos, tipo: os.tipo, ...fatosAutomaticos({ aberturaMs: os.abertaEmMs, prazoH, prazoDesconhecido: os.prazoDesconhecido }, ctx.agoraMs) };
   const resultado = calcularPrioridade(fatos, escolha.versao.versao, ctx.regras);
   const alterou = mudou(os.anterior, resultado);
 

@@ -104,6 +104,8 @@ export interface OSParaImpacto {
   fatos: Fatos;
   abertaEmMs: number;
   prazoLimiteMs: number | null;
+  /** OS importada do formato legado: o prazo é desconhecido (não "Sem prazo") */
+  prazoDesconhecido?: boolean;
   /** versão de pontuação em que a OS está (a previsão mede só o efeito das regras, nessa mesma versão) */
   versaoId: string | null;
 }
@@ -161,7 +163,7 @@ export function preverImpacto(
     const calc = (regras: Regra[]) =>
       planejarReclassificacao(
         {
-          cidade: o.cidade, tipo: o.tipo, fatos: o.fatos, abertaEmMs: o.abertaEmMs, prazoLimiteMs: o.prazoLimiteMs,
+          cidade: o.cidade, tipo: o.tipo, fatos: o.fatos, abertaEmMs: o.abertaEmMs, prazoLimiteMs: o.prazoLimiteMs, prazoDesconhecido: o.prazoDesconhecido,
           versaoId: o.versaoId, anterior: { codigo: 0, pontos: 0, nivel: 0 },
         },
         { publicadas, regras, agoraMs, migrar: false, motivo: "" },

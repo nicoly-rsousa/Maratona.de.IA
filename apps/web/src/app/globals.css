@@ -4,7 +4,7 @@
 
 /* Identidade visual do protótipo docs/farol.html */
 :root {
-  --bg: #0f1419; --p1: #171e26; --p2: #1f2833; --ln: #2d3a48; --tx: #dbe4ee; --mu: #8296aa; --ac: #5cc8d6; --ok: #6fbf8a;
+  --bg: #0b121a; --p1: #121d29; --p2: #1a2938; --ln: #2d4054; --tx: #e7eff8; --mu: #93a6ba; --ac: #5ccee0; --ok: #74ca97;
   --c0: #ff3d8b; --c1: #ff5a3c; --c2: #f2a900; --c3: #4f9cff; --c4: #7d9a8c; color-scheme: dark;
 }
 :root[data-t="l"] {
@@ -14,13 +14,13 @@
 
 @layer base {
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--tx); font: 13px/1.4 system-ui, sans-serif; }
+  body { margin: 0; background: var(--bg); color: var(--tx); font: 14px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; }
   :focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
-  h2 { font-size: 15px; margin: 0 0 8px; }
-  h3 { font-size: 13px; margin: 12px 0 4px; }
-  select, input, textarea, button { font: inherit; color: var(--tx); background: var(--p2); border: 1px solid var(--ln); border-radius: 3px; padding: 4px 7px; }
+  h2 { font-size: clamp(22px, 2vw, 28px); line-height: 1.15; letter-spacing: -.03em; margin: 0 0 8px; }
+  h3 { font-size: 14px; margin: 12px 0 4px; }
+  select, input, textarea, button { font: inherit; color: var(--tx); background: var(--p2); border: 1px solid var(--ln); border-radius: 7px; padding: 6px 9px; }
   button { cursor: pointer; }
-  button:hover:not(:disabled) { border-color: var(--ac); }
+  button:hover:not(:disabled) { border-color: var(--ac); background: color-mix(in srgb, var(--p2) 78%, var(--ac)); }
   button:disabled { opacity: .45; cursor: not-allowed; }
 }
 
@@ -38,7 +38,7 @@
   .tabela tr.r:hover { background: var(--p2); }
   .pill { display: inline-block; min-width: 74px; text-align: center; padding: 1px 6px; border-radius: 2px; font-weight: 700; color: #0f1419; }
   :root[data-t="l"] .pill { color: #fff; }
-  .box { background: var(--p1); border: 1px solid var(--ln); padding: 10px; margin-bottom: 10px; }
+  .box { background: var(--p1); border: 1px solid var(--ln); border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 8px 24px #00000012; }
   .err { border-left: 3px solid var(--c1); background: var(--p2); padding: 6px 9px; margin: 6px 0; }
   .warn { border-left: 3px solid var(--c2); background: var(--p2); padding: 6px 9px; margin: 6px 0; }
   .tabs { display: flex; gap: 4px; margin: 8px 0; }
@@ -53,10 +53,64 @@
   dialog::backdrop { background: #0008; }
   .mu { color: var(--mu); }
   .m { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .app-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 58px; padding: 10px 18px; border-bottom: 1px solid var(--ln); background: color-mix(in srgb, var(--p1) 94%, #000); }
+  .app-brand { display: inline-flex; align-items: center; gap: 8px; margin-right: 8px; font-size: 18px; letter-spacing: -.03em; }
+  .app-header > .mu { padding-left: 12px; border-left: 1px solid var(--ln); }
+  .app-header > .mu:last-child { width: 100%; padding-left: 0; border-left: 0; font-size: 12px; }
+  .app-header > button:first-of-type { margin-left: auto; }
+  .app-shell { display: flex; min-height: calc(100vh - 58px); }
+  .app-nav { width: 176px; flex: none; display: flex; flex-direction: column; gap: 4px; padding: 12px 10px; border-right: 1px solid var(--ln); background: color-mix(in srgb, var(--p1) 65%, var(--bg)); }
+  .app-nav .btn-nav { border-radius: 7px; padding: 8px 9px; }
+  .app-main { min-width: 0; flex: 1; padding: clamp(16px, 2vw, 28px); }
+
+  .rede-page { max-width: 1680px; margin: 0 auto; }
+  .rede-page > h2::before { content: "Centro de opera\00e7\00f5es"; display: block; margin-bottom: 3px; color: var(--ac); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+  .rede-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding: 9px 12px; border: 1px solid var(--ln); border-radius: 9px; background: color-mix(in srgb, var(--p1) 88%, var(--p2)); }
+  .rede-toolbar > .mu { display: flex; align-items: center; gap: 8px; }
+  .rede-toolbar > .mu::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 15%, transparent); }
+  .rede-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 14px; align-items: start; }
+  .rede-map-card { overflow: hidden; border: 1px solid var(--ln); border-radius: 12px; background: var(--p1); box-shadow: 0 18px 42px #0000001f; }
+  .rede-map-card > [role="region"] { border: 0 !important; }
+  .rede-sidebar { min-width: 0; }
+  .rede-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .rede-panel-heading > h3 { margin-top: 0; }
+  .circuit-list { max-height: 290px; margin: 0; padding: 0; list-style: none; overflow: auto; }
+  .circuit-option { width: 100%; display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; text-align: left; }
+  .circuit-option[aria-pressed="true"] { border-color: var(--ac); background: color-mix(in srgb, var(--ac) 13%, var(--p2)); }
+  .circuit-code { font-weight: 700; }
+  .circuit-meta { margin-left: auto; text-align: right; font-size: 12px; }
+  .lista-os-proximas { display: grid; gap: 4px; max-height: 280px; margin: 0; padding: 0; list-style: none; overflow: auto; }
+  .lista-os-proximas li { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--ln); }
+  .lista-os-proximas li > .mu { min-width: 0; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 }
 
 /* Cores das pílulas fora do @layer: Pill monta `k${codigo}` em runtime e o Tailwind removeria as regras. */
 .k0 { background: var(--c0); } .k1 { background: var(--c1); } .k2 { background: var(--c2); } .k3 { background: var(--c3); } .k4 { background: var(--c4); }
 
+/* Transformador no mapa da rede: círculo com a contagem de clientes identificados (DOM do Leaflet, fora do canvas). */
+.farol-trafo-icone { background: none; border: 0; }
+.farol-trafo {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 50%;
+  background: var(--p1); color: var(--tx); border: 2px solid var(--ac); box-shadow: 0 0 0 1px var(--bg);
+  font: 600 10px/1 system-ui, sans-serif; overflow: hidden;
+}
+
 @keyframes pl { 50% { opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+@media (max-width: 900px) {
+  .rede-workspace { grid-template-columns: 1fr; }
+  .rede-sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .rede-sidebar .box { margin-bottom: 0; }
+}
+@media (max-width: 700px) {
+  .app-header { padding: 10px 12px; }
+  .app-header > .mu { order: 3; width: 100%; padding: 6px 0 0; border: 0; border-top: 1px solid var(--ln); }
+  .app-header > .mu:last-child { display: none; }
+  .app-shell { flex-direction: column; }
+  .app-nav { width: auto; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--ln); }
+  .app-nav .btn-nav { flex: 1 0 auto; }
+  .app-main { padding: 14px; }
+  .rede-sidebar { grid-template-columns: 1fr; }
+  .rede-toolbar { align-items: flex-start; flex-direction: column; }
+}
