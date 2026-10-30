@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, supabaseConfigurado } from "@/lib/supabase";
 import { useAuth } from "../providers";
-import { IconeFarol } from "@/components/logo";
+import Image from "next/image";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
@@ -34,17 +34,12 @@ export default function LoginPage() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.visual} aria-label="Farol — gestão da manutenção de redes elétricas">
-        <div className={styles.brand}><IconeFarol tamanho={38} /><span>Farol<span className={styles.brandDot}>.</span></span></div>
-        <div className={styles.visualCopy}>
-          <span className={styles.eyebrow}><span /> CONECTANDO DECISÕES E OPERAÇÕES</span>
-          <h2>Clareza para decidir.<br />Energia para agir.</h2>
-          <p>Uma visão integrada para priorizar, acompanhar e transformar a manutenção da rede elétrica.</p>
+      <section className={styles.visual} aria-label="Logo do Farol animada">
+        <div className={styles.logoFrame}>
+          <Image src="/farol-logo.png" alt="Farol colorido com feixes de luz" fill priority sizes="(max-width: 700px) 100vw, 52vw" className={styles.animatedLogo} />
         </div>
-        <div className={styles.visualFooter}><span>Inteligência em cada prioridade.</span><span>FAROL / OPERAÇÕES</span></div>
       </section>
       <section className={styles.formPanel} aria-labelledby="login-title">
-        <div className={styles.mobileBrand}><IconeFarol tamanho={32} />Farol.</div>
         <div className={styles.formContent}>
           <span className={styles.formEyebrow}>SEU CENTRO DE OPERAÇÕES</span>
           <h1 id="login-title">Boas-vindas de volta.</h1>
