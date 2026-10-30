@@ -1,0 +1,32 @@
+.page { min-height: 100svh; display: grid; grid-template-columns: 1.05fr 1fr; background: var(--p1); }
+.visual { position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; min-height: 100svh; padding: 44px clamp(28px, 4vw, 72px) 30px; color: #f3f8fb; background: #102c36 url('/login-rede.svg') center / cover no-repeat; isolation: isolate; }
+.visual::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, #09222c44 0%, transparent 32%, #071c29a6 62%, #071c29f5 100%); }
+.brand, .mobileBrand { display: flex; align-items: center; gap: 9px; font-size: 32px; font-weight: 750; letter-spacing: -1.5px; }
+.brandDot { color: #78daca; }
+.visualCopy { margin-top: auto; padding-top: 240px; padding-bottom: 70px; }
+.eyebrow { display: flex; align-items: center; gap: 9px; font-size: 10px; font-weight: 650; letter-spacing: 2px; color: #bce1dd; }
+.eyebrow > span { width: 6px; height: 6px; border-radius: 50%; background: #88e4c9; box-shadow: 0 0 14px #88e4c988; flex-shrink: 0; }
+.visualCopy h2 { margin: 23px 0 20px; font-size: clamp(32px, 3.35vw, 54px); font-weight: 500; line-height: 1.13; letter-spacing: -2px; }
+.visualCopy p { max-width: 350px; margin: 0; color: #bfd0d7; font-size: 14px; line-height: 1.8; }
+.visualFooter { display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid #d9eeee26; padding-top: 22px; font-size: 11px; color: #9ab2bf; }
+.visualFooter > :last-child { font-size: 9px; letter-spacing: 1.5px; }
+.formPanel { min-width: 0; display: flex; flex-direction: column; justify-content: center; position: relative; padding: 76px clamp(28px, 6vw, 100px); }
+.formContent { width: 100%; max-width: 390px; margin: auto; padding: 40px 0; }
+.formEyebrow { display: block; margin-bottom: 19px; color: var(--ac); font-size: 10px; letter-spacing: 2px; font-weight: 700; }
+.formContent h1 { margin: 0 0 13px; font-size: clamp(27px, 2.4vw, 36px); font-weight: 600; letter-spacing: -1.2px; line-height: 1.2; }
+.description { color: var(--mu); line-height: 1.8; margin: 0 0 36px; font-size: 14px; }
+.form { display: flex; flex-direction: column; gap: 23px; }
+.form :global(.warn) { margin: 0; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; border-radius: 5px; }
+.label { display: flex; flex-direction: column; gap: 9px; font-size: 12px; font-weight: 550; }
+.label input { width: 100%; height: 51px; border-radius: 9px; padding: 0 15px; border-color: var(--ln); background: color-mix(in srgb, var(--bg) 55%, var(--p1)); font-size: 13px; font-weight: 400; transition: border-color .2s, box-shadow .2s; }
+.label input::placeholder { color: var(--mu); opacity: .65; }
+.label input:focus { border-color: var(--ac); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac) 12%, transparent); outline: none; }
+.submit { display: flex; justify-content: space-between; align-items: center; min-height: 51px; margin-top: 5px; padding: 0 18px; border: 1px solid var(--ac); border-radius: 9px; background: var(--ac); color: var(--bg); font-size: 13px; font-weight: 700; transition: background .2s, transform .2s; }
+.submit span { font-size: 22px; font-weight: 400; }
+.submit:hover:not(:disabled) { background: color-mix(in srgb, var(--ac) 85%, white); transform: translateY(-1px); }
+.help { margin: 26px 0 0; color: var(--mu); text-align: center; font-size: 11px; line-height: 1.8; }
+.formFooter { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 24px; font-size: 10px; color: var(--mu); }
+.mobileBrand { display: none; }
+@media (min-width: 1600px) { .visualCopy { padding-bottom: 100px; } }
+@media (max-width: 1000px) { .page { grid-template-columns: 1fr 1fr; } .visual { padding-left: 30px; padding-right: 30px; } .formPanel { padding-left: 32px; padding-right: 32px; } .visualFooter > :last-child { display: none; } .eyebrow { font-size: 8px; letter-spacing: 1.4px; } }
+@media (max-width: 700px) { .page { grid-template-columns: 1fr; } .visual { min-height: 320px; padding: 25px 28px; background-position: center 39%; } .brand { font-size: 25px; } .visualCopy { padding: 60px 0 0; } .visualCopy h2 { margin: 14px 0 0; font-size: 32px; letter-spacing: -1px; } .visualCopy p, .visualFooter, .eyebrow { display: none; } .formPanel { min-height: calc(100svh - 320px); padding: 15px 28px 22px; } .formContent { padding: 30px 0; max-width: 420px; } .formContent h1 { font-size: 28px; } .description { margin-bottom: 26px; } .formFooter { max-width: 420px; width: 100%; margin: 0 auto; } }

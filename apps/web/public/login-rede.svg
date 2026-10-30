@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1300" viewBox="0 0 1000 1300" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="500" y1="0" x2="500" y2="1300" gradientUnits="userSpaceOnUse"><stop stop-color="#122f42"/><stop offset=".37" stop-color="#587e83"/><stop offset=".6" stop-color="#d6b794"/><stop offset="1" stop-color="#16373a"/></linearGradient>
+    <radialGradient id="sun"><stop stop-color="#f7e4b4" stop-opacity=".8"/><stop offset="1" stop-color="#f7e4b4" stop-opacity="0"/></radialGradient>
+    <linearGradient id="hill"><stop stop-color="#264b4b"/><stop offset="1" stop-color="#0c2631"/></linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="24"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".055"/></feComponentTransfer><feBlend in="SourceGraphic" mode="soft-light"/></filter>
+    <g id="pylon" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-55 420 -20 150 -12 75 0 0 12 75 20 150 55 420M-55 420 40 305 -35 215 25 155 -22 105 14 75 -10 45M55 420 -40 305 35 215 -25 155 22 105 -14 75 10 45" stroke-width="3"/>
+      <path d="M-72 85H72L12 60M-72 85 -12 60M-98 140H98L20 111M-98 140 -20 111M-82 194H82L25 163M-82 194 -25 163M-65 85V101M65 85V101M-90 140V157M90 140V157M-75 194V212M75 194V212M-45 365H45M-35 280H35M-28 215H28" stroke-width="3"/>
+      <path d="M-70 96H-60M60 96H70M-95 151H-85M85 151H95M-80 206H-70M70 206H80" stroke="#b2c4b8" stroke-width="5"/>
+    </g>
+  </defs>
+  <g filter="url(#grain)">
+    <path fill="url(#sky)" d="M0 0h1000v1300H0z"/>
+    <ellipse cx="760" cy="575" rx="350" ry="300" fill="url(#sun)"/>
+    <g opacity=".2" filter="url(#blur)" stroke="#d2d9ce" stroke-width="24"><path d="M-60 270Q290 160 600 245T1100 210"/><path d="M200 390Q500 320 1050 355"/></g>
+    <path d="M0 740 100 682 205 710 330 637 440 675 535 624 690 700 820 652 1000 725V1300H0Z" fill="#496b69" opacity=".7"/>
+    <path d="M0 830Q160 715 350 810T720 755T1000 810V1300H0Z" fill="url(#hill)"/>
+    <g color="#122d38"><use href="#pylon" transform="translate(720 245) scale(1.36)"/><use href="#pylon" transform="translate(315 480) scale(.64)"/><use href="#pylon" transform="translate(100 605) scale(.33)"/></g>
+    <g stroke="#17333e" stroke-width="1.6" opacity=".85">
+      <path d="M-50 445Q350 570 632 382Q820 420 1100 175M-50 480Q350 620 808 382Q960 340 1100 250M-50 520Q350 665 598 459Q850 510 1100 320M-50 560Q350 690 842 459Q990 410 1100 365M-50 610Q350 735 618 533Q840 585 1100 430M-50 650Q350 760 822 533Q970 505 1100 485"/>
+    </g>
+    <path d="M0 946Q230 825 440 918T1000 870V1300H0Z" fill="#102c35"/>
+    <path d="M0 1130Q430 1030 1000 1100V1300H0Z" fill="#0c2530"/>
+  </g>
+</svg>
